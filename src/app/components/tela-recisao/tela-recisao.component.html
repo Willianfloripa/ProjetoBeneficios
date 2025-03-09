@@ -1,0 +1,204 @@
+<div class="main-container">
+  <!-- Header -->
+  <div class="header">
+    <button class="btn-back" (click)="voltar()">
+      <i class="fas fa-arrow-left"></i> Voltar
+    </button>
+    <h1>Sistema de Análise de Dados Rescisão</h1>
+  </div>
+
+  <div class="content">
+    <!-- Search Control and Export -->
+    <div class="search-container">
+      <button class="btn-add" (click)="addNewRow()">
+        <i class="fas fa-plus"></i>
+        Novo
+      </button>
+      <button class="btn-clear" (click)="clearData()" *ngIf="filteredData.length > 0">
+        <i class="fas fa-trash-alt"></i>
+        Limpar
+      </button>
+      <button class="btn-import" (click)="triggerFileInput()">
+        <i class="fas fa-file-import"></i>
+        Importar
+      </button>
+      <input type="file"
+             id="fileInput"
+             (change)="onFileChange($event)"
+             class="hidden-file-input"
+             title="Selecione um arquivo Excel para importar"
+             placeholder="Selecione um arquivo Excel"
+             accept=".xlsx, .xls" />
+
+      <div class="search-center">
+        <div class="control-item">
+          <label for="searchInput">Pesquisar</label>
+          <input type="text"
+                 id="searchInput"
+                 placeholder="Digite para pesquisar..."
+                 title="Campo de pesquisa"
+                 [(ngModel)]="searchTerm"
+                 (input)="filterData()" />
+        </div>
+      </div>
+
+      <div class="actions-right" *ngIf="filteredData.length > 0">
+        <div class="total-value">
+          Total: {{ getTotalValue() | currency:'BRL' }}
+        </div>
+        <button class="btn-export" (click)="exportToExcel()">
+          <i class="fas fa-file-export"></i>
+          Exportar
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="dropColumn($event)">
+            <th *ngFor="let col of displayColumns" cdkDrag>
+              <div class="th-content" (click)="sortData(col.field)">
+                {{ col.title }}
+                <i class="fas"
+                   [class.fa-sort-up]="sortColumn === col.field && sortDirection === 'asc'"
+                   [class.fa-sort-down]="sortColumn === col.field && sortDirection === 'desc'"
+                   [class.fa-sort]="sortColumn !== col.field || sortDirection === 'none'"></i>
+              </div>
+            </th>
+            <th class="actions-column">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="isEditing === -1">
+            <td *ngFor="let col of displayColumns">
+              <label class="sr-only" [for]="'new-' + col.field">{{ col.title }}</label>
+              <ng-container [ngSwitch]="col.field">
+                <ng-container *ngSwitchCase="'valor'">
+                  <input type="number"
+                         [id]="'new-' + col.field"
+                         [(ngModel)]="newRow[col.field]"
+                         placeholder="0.00"
+                         [title]="'Novo ' + col.title.toLowerCase()">
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  <input type="text"
+                         [id]="'new-' + col.field"
+                         [(ngModel)]="newRow[col.field]"
+                         [placeholder]="col.title"
+                         [title]="'Novo ' + col.title.toLowerCase()">
+                </ng-container>
+              </ng-container>
+            </td>
+            <td class="actions-column">
+              <button class="btn-save" (click)="saveNewRow()" title="Salvar">
+                <i class="fas fa-save"></i>
+                <span class="sr-only">Salvar</span>
+              </button>
+              <button class="btn-cancel" (click)="cancelAdd()" title="Cancelar">
+                <i class="fas fa-times"></i>
+                <span class="sr-only">Cancelar</span>
+              </button>
+            </td>
+          </tr>
+          <ng-container *ngIf="filteredData.length > 0; else emptyTable">
+            <tr *ngFor="let item of filteredData; let i = index" [class.editing]="isEditing === i">
+              <ng-container *ngIf="isEditing === i; else displayRow">
+                <td *ngFor="let col of displayColumns">
+                  <ng-container [ngSwitch]="col.field">
+                    <ng-container *ngSwitchCase="'valor'">
+                      <label class="sr-only" [for]="'valor-edit-' + i">Valor</label>
+                      <input type="number"
+                             [id]="'valor-edit-' + i"
+                             [(ngModel)]="editingRow[col.field]"
+                             placeholder="0.00"
+                             title="Editar valor"
+                             (keyup)="handleKeyPress($event)">
+                    </ng-container>
+                    <ng-container *ngSwitchDefault>
+                      <label class="sr-only" [for]="col.field + '-edit-' + i">{{ col.title }}</label>
+                      <input type="text"
+                             [id]="col.field + '-edit-' + i"
+                             [(ngModel)]="editingRow[col.field]"
+                             [placeholder]="col.title"
+                             [title]="'Editar ' + col.title.toLowerCase()"
+                             (keyup)="handleKeyPress($event)">
+                    </ng-container>
+                  </ng-container>
+                </td>
+                <td class="actions-column">
+                  <button class="btn-save" (click)="saveEdit()" title="Salvar">
+                    <i class="fas fa-save"></i>
+                  </button>
+                  <button class="btn-cancel" (click)="cancelEdit()" title="Cancelar">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </td>
+              </ng-container>
+              <ng-template #displayRow>
+                <td *ngFor="let col of displayColumns" (dblclick)="editField(i, col.field)">
+                  <ng-container [ngSwitch]="col.field">
+                    <ng-container *ngSwitchCase="'valor'">
+                      {{ item[col.field] | currency:'BRL' }}
+                    </ng-container>
+                    <ng-container *ngSwitchDefault>
+                      {{ item[col.field] }}
+                    </ng-container>
+                  </ng-container>
+                </td>
+                <!-- Coluna de ações fixa -->
+                <td class="actions-column">
+                  <button class="btn-edit" (click)="editField(i, 'nome')" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-delete" (click)="deleteRow(i)" title="Excluir">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </td>
+              </ng-template>
+            </tr>
+          </ng-container>
+          <ng-template #emptyTable>
+            <tr class="empty-row" *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]">
+              <td colspan="9"></td>
+            </tr>
+            <tr>
+              <td colspan="9" class="no-data-message">
+                Nenhum dado encontrado. Importe uma planilha para começar.
+              </td>
+            </tr>
+          </ng-template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação -->
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ modalTitle }}</h2>
+        <button type="button" class="btn-close" (click)="cancelModal()" title="Fechar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        {{ modalMessage }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="cancelModal()">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button type="button" class="btn-confirm" (click)="confirmModal()">
+          <i class="fas fa-check"></i> Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2025 WTM - Todos os direitos reservados</p>
+  </footer>
+</div>
