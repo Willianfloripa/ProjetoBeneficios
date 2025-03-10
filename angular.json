@@ -26,6 +26,9 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              "src/.nojekyll",
               {
                 "glob": "**/*",
                 "input": "public"
@@ -35,7 +38,8 @@
               "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "baseHref": "/ProjetoBeneficios/"
           },
           "configurations": {
             "production": {
@@ -96,6 +100,14 @@
               "src/styles.scss"
             ],
             "scripts": []
+          }
+        },
+        "deploy": {
+          "builder": "angular-cli-ghpages:deploy",
+          "options": {
+            "baseHref": "/ProjetoBeneficios/",
+            "name": "Seu Nome",
+            "email": "seu.email@exemplo.com"
           }
         }
       }

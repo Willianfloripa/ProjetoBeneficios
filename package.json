@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:BaseRecisao": "node dist/base-recisao/server/server.mjs",
-    "deploy": "ng build --configuration production --base-href=/ProjetoBeneficios/ && npx angular-cli-ghpages --dir=dist/base-recisao --no-silent"
+    "deploy": "ng deploy --base-href=/ProjetoBeneficios/"
   },
   "private": true,
   "dependencies": {
@@ -40,6 +40,7 @@
     "@types/file-saver": "^2.0.7",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.18.0",
+    "angular-cli-ghpages": "^2.0.3",
     "jasmine-core": "~5.5.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
