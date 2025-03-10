@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { DataService } from '../../services/recisao.service';
+import { LoadingService } from '../../services/loading.service';
 
 @Component({
   selector: 'app-home',
@@ -10,9 +12,31 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule]
 })
 export class HomeComponent {
-  constructor(private router: Router) {}
+  isLoading: boolean = false;
 
-  navegarParaTelaRecisao() {
-    this.router.navigate(['/recisao']);
+  constructor(
+    private router: Router,
+    private dataService: DataService,
+    private loadingService: LoadingService
+  ) {}
+
+  async navegarParaTelaRescisao() {
+    this.loadingService.show('Carregando...');
+    try {
+      // Aguarda os dados serem carregados
+      await this.dataService.loadInitialData();
+      await this.router.navigate(['/rescisao']);
+    } finally {
+      this.loadingService.hide();
+    }
+  }
+
+  async navegarParaTelaCcm() {
+    this.loadingService.show('Carregando...');
+    try {
+      await this.router.navigate(['/ccm']);
+    } finally {
+      this.loadingService.hide();
+    }
   }
 }

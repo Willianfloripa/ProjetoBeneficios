@@ -1,30 +1,19 @@
 <div class="home-container">
-  <h1>Gestão de Benefícios</h1>
+  <h1>Sistema de Análise de Dados</h1>
+
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <span>Carregando...</span>
+  </div>
 
   <div class="buttons-grid">
-    <button class="menu-button" (click)="navegarParaTelaRecisao()">
-      <i class="fas fa-file-arrow-down"></i>
-      <span>Análise de Rescisão</span>
+    <button class="menu-button" (click)="navegarParaTelaCcm()">
+      <i class="fas fa-file-invoice"></i>
+      <span>CCM</span>
     </button>
-
-    <button class="menu-button" disabled>
-      <i class="fas fa-file-arrow-down"></i>
-      <span>Em breve</span>
-    </button>
-
-    <button class="menu-button" disabled>
-      <i class="fas fa-file-arrow-down"></i>
-      <span>Em breve</span>
-    </button>
-
-    <button class="menu-button" disabled>
-      <i class="fas fa-file-arrow-down"></i>
-      <span>Em breve</span>
-    </button>
-
-    <button class="menu-button" disabled>
-      <i class="fas fa-file-arrow-down"></i>
-      <span>Em breve</span>
+    <button class="menu-button" (click)="navegarParaTelaRescisao()">
+      <i class="fas fa-file-contract"></i>
+      <span>Rescisão</span>
     </button>
   </div>
 </div>

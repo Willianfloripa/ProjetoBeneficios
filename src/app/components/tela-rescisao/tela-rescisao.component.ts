@@ -7,12 +7,12 @@ import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-
 import { Router } from '@angular/router';
 import { saveAs } from 'file-saver';
 
-interface DadosPlanilha {
-  [key: string]: any;  // Permite acesso dinâmico aos campos
+export interface DadosPlanilha {
+  [key: string]: string | number | undefined;
   nome?: string;
-  matricula?: string | number;
+  matricula?: string;
   cpf?: string;
-  plano?: string;
+  planos?: string;
   valor?: number;
   descricao?: string;
   observacao?: string;
@@ -24,9 +24,9 @@ interface ColumnDef {
 }
 
 @Component({
-  selector: 'app-tela-recisao',
-  templateUrl: './tela-recisao.component.html',
-  styleUrls: ['./tela-recisao.component.scss'],
+  selector: 'app-tela-rescisao',
+  templateUrl: './tela-rescisao.component.html',
+  styleUrls: ['./tela-rescisao.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -34,7 +34,7 @@ interface ColumnDef {
     DragDropModule
   ]
 })
-export class TelaRecisaoComponent implements OnInit {
+export class TelaRescisaoComponent implements OnInit {
   searchTerm: string = '';
   filteredData: DadosPlanilha[] = [];
   isEditing: number = -2; // -2: não editando, -1: novo registro, >= 0: editando registro existente
@@ -48,30 +48,32 @@ export class TelaRecisaoComponent implements OnInit {
   sortDirection: 'asc' | 'desc' | 'none' = 'none';
   editingField: string = '';
   displayColumns = [
-    { field: 'nome', title: 'Nome' },
+    { field: 'planos', title: 'Planos' },
     { field: 'matricula', title: 'Matrícula' },
+    { field: 'nome', title: 'Nome' },
     { field: 'cpf', title: 'CPF' },
-    { field: 'plano', title: 'Plano' },
     { field: 'valor', title: 'Valor' },
     { field: 'descricao', title: 'Descrição' },
     { field: 'observacao', title: 'Observação' }
   ];
+  isLoading: boolean = false;
 
   constructor(private dataService: DataService, private router: Router) {
     this.filteredData = this.dataService.getData();
   }
 
   ngOnInit() {
+    localStorage.removeItem('columnOrder');
     this.loadColumnOrder();
     this.filteredData = this.dataService.getData();
   }
 
   private loadColumnOrder() {
     const validColumns: ColumnDef[] = [
-      { field: 'nome', title: 'Nome' },
+      { field: 'planos', title: 'Planos' },
       { field: 'matricula', title: 'Matrícula' },
+      { field: 'nome', title: 'Nome' },
       { field: 'cpf', title: 'CPF' },
-      { field: 'plano', title: 'Plano' },
       { field: 'valor', title: 'Valor' },
       { field: 'descricao', title: 'Descrição' },
       { field: 'observacao', title: 'Observação' }
@@ -104,6 +106,7 @@ export class TelaRecisaoComponent implements OnInit {
   onFileChange(event: any) {
     const file = event.target.files[0];
     if (file) {
+      this.isLoading = true;
       const reader = new FileReader();
       reader.onload = (e: any) => {
         const workbook = XLSX.read(e.target.result, { type: 'binary' });
@@ -142,6 +145,7 @@ export class TelaRecisaoComponent implements OnInit {
 
         this.dataService.setData(dadosCombinados);
         this.filteredData = dadosCombinados;
+        this.isLoading = false;
       };
       reader.readAsBinaryString(file);
     }
@@ -172,8 +176,8 @@ export class TelaRecisaoComponent implements OnInit {
             indices['cpf'] = col;
             headerRow = row;
           }
-          else if (value.match(/plano/)) {
-            indices['plano'] = col;
+          else if (value.match(/planos/)) {
+            indices['planos'] = col;
             headerRow = row;
           }
           else if (value.match(/valor|preco|custo/)) {
@@ -209,8 +213,8 @@ export class TelaRecisaoComponent implements OnInit {
     if (indices['cpf'] !== undefined) {
       dado.cpf = this.formatCPF(String(row[indices['cpf']] || ''));
     }
-    if (indices['plano'] !== undefined) {
-      dado.plano = String(row[indices['plano']] || '');
+    if (indices['planos'] !== undefined) {
+      dado.planos = String(row[indices['planos']] || '');
     }
     if (indices['valor'] !== undefined) {
       dado.valor = this.parseValor(row[indices['valor']]);
@@ -329,7 +333,7 @@ export class TelaRecisaoComponent implements OnInit {
       this.displayColumns.forEach(col => {
         const value = item[col.field];
         row[col.title] = col.field === 'valor' && value ?
-          `R$ ${value.toFixed(2)}` :
+          `R$ ${typeof value === 'number' ? value.toFixed(2) : value}` :
           (value || '');
       });
       return row;
@@ -375,7 +379,7 @@ export class TelaRecisaoComponent implements OnInit {
       nome: '',
       matricula: '',
       cpf: '',
-      plano: '',
+      planos: '',
       valor: 0,
       descricao: '',
       observacao: ''
@@ -515,7 +519,7 @@ export class TelaRecisaoComponent implements OnInit {
     return a.nome === b.nome &&
            a.matricula === b.matricula &&
            a.cpf === b.cpf &&
-           a.plano === b.plano &&
+           a.planos === b.planos &&
            a.valor === b.valor &&
            a.descricao === b.descricao &&
            a.observacao === b.observacao;

@@ -44,4 +44,14 @@ export class DataService {
       localStorage.removeItem(this.STORAGE_KEY);
     }
   }
+
+  async loadInitialData(): Promise<void> {
+    // Simula um carregamento inicial de dados
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        this.data = [];
+        resolve();
+      }, 1000);
+    });
+  }
 }

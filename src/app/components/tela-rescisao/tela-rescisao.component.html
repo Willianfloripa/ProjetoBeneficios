@@ -7,6 +7,12 @@
     <h1>Sistema de Análise de Dados Rescisão</h1>
   </div>
 
+  <!-- Adicionar após o header -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <span>Processando dados...</span>
+  </div>
+
   <div class="content">
     <!-- Search Control and Export -->
     <div class="search-container">
