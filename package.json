@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:BaseRecisao": "node dist/base-recisao/server/server.mjs",
-    "deploy": "ng deploy --base-href=/ProjetoBeneficios/"
+    "deploy": "ng deploy --no-silent"
   },
   "private": true,
   "dependencies": {
