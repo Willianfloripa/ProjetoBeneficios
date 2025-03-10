@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:BaseRecisao": "node dist/base-recisao/server/server.mjs"
+    "serve:ssr:BaseRecisao": "node dist/base-recisao/server/server.mjs",
+    "deploy": "ng build --configuration production --base-href=/ProjetoBeneficios/ && npx angular-cli-ghpages --dir=dist/base-recisao --no-silent"
   },
   "private": true,
   "dependencies": {
