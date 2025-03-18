@@ -176,7 +176,7 @@ export class TelaCcmComponent {
           dadosDependente?.['DATA DE NASCIMENTO'] || '',
         LANCAMENTO: 'Mensalidade',
         MENSALIDADE: Number(dado.VALOR || 0),
-        STATUS: titularArena?.['SITUAÇÃO FUNCIONÁRIO'] || ''
+        STATUS: this.substituicoesService.corrigirStatus(nomeTitular, titularArena?.['SITUAÇÃO FUNCIONÁRIO'] || '')
       };
 
       return dadoPadrao;

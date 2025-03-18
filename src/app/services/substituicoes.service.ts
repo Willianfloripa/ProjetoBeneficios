@@ -34,4 +34,13 @@ export class SubstituicoesService {
     );
     return substituicao ? substituicao.correto : nome;
   }
+
+  corrigirStatus(nome: string, statusOriginal: string): string {
+    const substituicoes: { [key: string]: string } = {
+      'MARCOS ROGERIO MILITAO DE VARGAS': 'ATIVO',
+      // Adicione outros nomes e status conforme necessário
+    };
+    const nomeNormalizado = nome.trim().toUpperCase();
+    return substituicoes[nomeNormalizado] || statusOriginal;
+  }
 }
