@@ -448,10 +448,22 @@ export class TelaRescisaoComponent implements OnInit {
       'Excluir Registro',
       'Tem certeza que deseja excluir este registro?',
       () => {
+        const itemToDelete = this.filteredData[index];
+
         const data = this.dataService.getData();
-        data.splice(index, 1);
-        this.dataService.setData(data);
-        this.filteredData = data;
+
+        const originalIndex = data.findIndex(item =>
+          item.nome === itemToDelete.nome &&
+          item.matricula === itemToDelete.matricula &&
+          item.cpf === itemToDelete.cpf
+        );
+
+        if (originalIndex > -1) {
+          data.splice(originalIndex, 1);
+          this.dataService.setData(data);
+
+          this.filterData();
+        }
       }
     );
   }
