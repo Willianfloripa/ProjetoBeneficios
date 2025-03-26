@@ -56,7 +56,8 @@
             <th>CPF</th>
             <th>Nascimento</th>
             <th>Lançamento</th>
-            <th>Mensalidade</th>
+            <th>Mensalidade Desconto</th>
+            <th>Copart Desconto</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -71,7 +72,8 @@
             <td>{{dado.CPF}}</td>
             <td>{{dado.NASCIMENTO}}</td>
             <td>{{dado.LANCAMENTO}}</td>
-            <td>{{dado.MENSALIDADE | currency:'BRL'}}</td>
+            <td>{{dado.MENSALIDADE_DESCONTO | currency:'BRL'}}</td>
+            <td>{{dado.COPART_DESCONTO | currency:'BRL'}}</td>
             <td>{{dado.STATUS}}</td>
           </tr>
         </tbody>

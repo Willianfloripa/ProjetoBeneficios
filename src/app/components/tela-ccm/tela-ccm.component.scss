@@ -153,6 +153,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
 
     th {
       background: #34495e;
@@ -162,11 +163,16 @@
       position: sticky;
       top: 0;
       z-index: 1;
+      font-weight: normal;
+      border: none;
     }
 
     td {
       padding: 10px;
       border-bottom: 1px solid #eee;
+      text-align: left;
+      white-space: normal;
+      word-wrap: break-word;
     }
 
     tr:hover td {
@@ -175,6 +181,10 @@
 
     tr:nth-child(even) {
       background: #f8f9fa;
+    }
+
+    thead tr {
+      background: #34495e;
     }
   }
 }
@@ -262,29 +272,19 @@
 table {
   width: 100%;
   border-collapse: collapse;
-  thead {
-    tr {
-      position: sticky;
-      top: 0;
-      background-color: white;
-      z-index: 10;
-    }
-  }
-}
-
-th, td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
 }
 
 th {
-  background: #f5f5f5;
-  font-weight: 600;
+  background: #34495e !important;
+  color: white;
+  font-weight: normal;
+  border: none !important;
 }
 
-tr:hover {
-  background: #f9f9f9;
+td {
+  border-bottom: 1px solid #eee;
+  border-right: none;
+  border-left: none;
 }
 
 /* Linhas vazias coloridas */
@@ -511,13 +511,12 @@ input[type="checkbox"] {
 
 td {
   position: relative;
-  min-width: 120px;
-  height: 40px;
+  height: auto;
   padding: 8px;
   box-sizing: border-box;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 td input {
@@ -758,11 +757,6 @@ tr.editing {
 
   .actions-column {
     background: rgba(231, 76, 60, 0.05);
-    border-left: none;
-
-    button {
-      transform: scale(1.05);
-    }
   }
 }
 

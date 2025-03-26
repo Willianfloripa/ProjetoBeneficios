@@ -108,45 +108,66 @@ export class TelaRescisaoComponent implements OnInit {
     if (file) {
       this.isLoading = true;
       const reader = new FileReader();
+
       reader.onload = (e: any) => {
-        const workbook = XLSX.read(e.target.result, { type: 'binary' });
-        const dados: DadosPlanilha[] = [];
+        try {
+          const workbook = XLSX.read(e.target.result, { type: 'binary' });
+          const dados: DadosPlanilha[] = [];
 
-        workbook.SheetNames.forEach(sheetName => {
-          const worksheet = workbook.Sheets[sheetName];
-          const sheetData = XLSX.utils.sheet_to_json<any[]>(worksheet, {
-            raw: false,
-            header: 1,
-            defval: ''
-          }) as any[][];
+          workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json<any[]>(worksheet, {
+              raw: false,
+              header: 1,
+              defval: ''
+            }) as any[][];
 
-          const colunas = this.encontrarColunas(sheetData);
+            const colunas = this.encontrarColunas(sheetData);
 
-          for (let i = colunas.headerRow + 1; i < sheetData.length; i++) {
-            const dado = this.extrairDadosLinha(sheetData[i], colunas.indices);
-            if (this.isValidRecord(dado)) {
-              dados.push(dado);
+            for (let i = colunas.headerRow + 1; i < sheetData.length; i++) {
+              const dado = this.extrairDadosLinha(sheetData[i], colunas.indices);
+              if (this.isValidRecord(dado)) {
+                dados.push(dado);
+              }
             }
-          }
-        });
+          });
 
-        // Obtém dados existentes
-        const dadosExistentes = this.dataService.getData();
+          // Obtém dados existentes
+          const dadosExistentes = this.dataService.getData();
 
-        // Filtra apenas registros realmente novos
-        const dadosNovos = dados.filter(novoItem =>
-          !dadosExistentes.some(existente =>
-            this.isExactSameRecord(novoItem, existente)
-          )
-        );
+          // Filtra apenas registros realmente novos
+          const dadosNovos = dados.filter(novoItem =>
+            !dadosExistentes.some(existente =>
+              this.isExactSameRecord(novoItem, existente)
+            )
+          );
 
-        // Combina dados existentes com novos
-        const dadosCombinados = [...dadosExistentes, ...dadosNovos];
+          // Combina dados existentes com novos
+          const dadosCombinados = [...dadosExistentes, ...dadosNovos];
 
-        this.dataService.setData(dadosCombinados);
-        this.filteredData = dadosCombinados;
-        this.isLoading = false;
+          this.dataService.setData(dadosCombinados);
+          this.filteredData = dadosCombinados;
+        } catch (error) {
+          console.error('Erro ao processar arquivo:', error);
+          this.openModal(
+            'Erro',
+            'Ocorreu um erro ao processar o arquivo. Por favor, tente novamente.',
+            () => {}
+          );
+        } finally {
+          this.isLoading = false;
+        }
       };
+
+      reader.onerror = () => {
+        this.isLoading = false;
+        this.openModal(
+          'Erro',
+          'Erro ao ler o arquivo. Por favor, tente novamente.',
+          () => {}
+        );
+      };
+
       reader.readAsBinaryString(file);
     }
   }
@@ -415,8 +436,19 @@ export class TelaRescisaoComponent implements OnInit {
       );
 
       if (indexInData !== -1) {
-        data[indexInData] = { ...this.editingRow };
-        this.filteredData[this.isEditing] = { ...this.editingRow };
+        // Garante que todos os campos sejam copiados corretamente
+        const updatedRow = {
+          nome: this.editingRow.nome,
+          matricula: this.editingRow.matricula,
+          cpf: this.editingRow.cpf,
+          planos: this.editingRow.planos,
+          valor: this.editingRow.valor,
+          descricao: this.editingRow.descricao,
+          observacao: this.editingRow.observacao
+        };
+
+        data[indexInData] = updatedRow;
+        this.filteredData[this.isEditing] = updatedRow;
         this.dataService.setData([...data]);
       }
 

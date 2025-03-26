@@ -16,7 +16,8 @@ interface DadoPadrao {
   CPF: string;
   NASCIMENTO: string;
   LANCAMENTO: string;
-  MENSALIDADE: number;
+  MENSALIDADE_DESCONTO: number;
+  COPART_DESCONTO: number;
   STATUS: string;
 }
 
@@ -119,16 +120,14 @@ export class TelaCcmComponent {
 
     // Filtrar registros de taxa
     const registrosSemTaxa = ccm.filter((d: any) =>
-      (d.NOME_BENEFICIARIO || d.BENEFICIARIO) &&
-      !d.DESCRICAO_SERVICO?.toUpperCase().includes('TAXA')
+      (d.NOME_BENEFICIARIO || d.BENEFICIARIO)
     );
 
     // Calcular taxa separadamente
     const taxaTotal = ccm
       .filter((d: any) =>
         !d.NOME_BENEFICIARIO &&
-        !d.BENEFICIARIO ||
-        d.DESCRICAO_SERVICO?.toUpperCase().includes('TAXA')
+        !d.BENEFICIARIO
       )
       .reduce((sum: number, d: any) => sum + Number(d.VALOR || 0), 0);
 
@@ -158,6 +157,10 @@ export class TelaCcmComponent {
       const plano = dado.DESCRICAO_SERVICO || 'CCM';
       const planoProcessado = this.processarNomePlano(plano);
 
+      // Verificar se é co-participação
+      const isCopart = plano.toUpperCase().includes('CO-PARTICIPACAO');
+      const valor = Number(dado.VALOR || 0);
+
       // Montar o registro padrão
       const dadoPadrao: DadoPadrao = {
         PLANOS: planoProcessado,
@@ -174,8 +177,9 @@ export class TelaCcmComponent {
         NASCIMENTO: nomeBeneficiario === nomeTitular ?
           titularArena?.['DATA NASCIMENTO'] :
           dadosDependente?.['DATA DE NASCIMENTO'] || '',
-        LANCAMENTO: 'Mensalidade',
-        MENSALIDADE: Number(dado.VALOR || 0),
+        LANCAMENTO: isCopart ? 'Mensalidade + Co-part' : 'Mensalidade',
+        MENSALIDADE_DESCONTO: isCopart ? 0 : valor,
+        COPART_DESCONTO: isCopart ? valor : 0,
         STATUS: this.substituicoesService.corrigirStatus(nomeTitular, titularArena?.['SITUAÇÃO FUNCIONÁRIO'] || '')
       };
 
@@ -188,14 +192,19 @@ export class TelaCcmComponent {
       if (!acc[key]) {
         acc[key] = curr;
       } else {
-        acc[key].MENSALIDADE += curr.MENSALIDADE;
+        acc[key].MENSALIDADE_DESCONTO += curr.MENSALIDADE_DESCONTO;
+        acc[key].COPART_DESCONTO += curr.COPART_DESCONTO;
+        // Atualizar o lançamento se houver ambos os valores
+        if (acc[key].MENSALIDADE_DESCONTO > 0 && acc[key].COPART_DESCONTO > 0) {
+          acc[key].LANCAMENTO = 'Mensalidade + Copart';
+        }
       }
       return acc;
     }, {} as { [key: string]: DadoPadrao });
 
     // Montar array final com taxa e total
     const dadosFinal = Object.values(dadosAgrupados) as DadoPadrao[];
-    const totalMensalidades = dadosFinal.reduce((sum: number, d: DadoPadrao) => sum + d.MENSALIDADE, 0);
+    const totalMensalidades = dadosFinal.reduce((sum: number, d: DadoPadrao) => sum + d.MENSALIDADE_DESCONTO, 0);
 
     // Adicionar linha de taxa se houver
     if (taxaTotal > 0) {
@@ -209,7 +218,8 @@ export class TelaCcmComponent {
         CPF: '',
         NASCIMENTO: '',
         LANCAMENTO: '',
-        MENSALIDADE: taxaTotal,
+        MENSALIDADE_DESCONTO: taxaTotal,
+        COPART_DESCONTO: 0,
         STATUS: ''
       });
     }
@@ -225,7 +235,8 @@ export class TelaCcmComponent {
       CPF: '',
       NASCIMENTO: '',
       LANCAMENTO: '',
-      MENSALIDADE: totalMensalidades + taxaTotal,
+      MENSALIDADE_DESCONTO: totalMensalidades + taxaTotal,
+      COPART_DESCONTO: dadosFinal.reduce((sum, d) => sum + d.COPART_DESCONTO, 0),
       STATUS: ''
     });
 
