@@ -13,6 +13,7 @@ import { LoadingService } from '../../services/loading.service';
 })
 export class HomeComponent {
   isLoading: boolean = false;
+  versao: string = '1.0.0';
 
   constructor(
     private router: Router,
@@ -35,6 +36,15 @@ export class HomeComponent {
     this.loadingService.show('Carregando...');
     try {
       await this.router.navigate(['/ccm']);
+    } finally {
+      this.loadingService.hide();
+    }
+  }
+
+  async navegarParaTelaWellhub() {
+    this.loadingService.show('Carregando...');
+    try {
+      await this.router.navigate(['/wellhub']);
     } finally {
       this.loadingService.hide();
     }
