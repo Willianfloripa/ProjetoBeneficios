@@ -8,7 +8,7 @@
   </div>
 
   <!-- Adicionar após o header -->
-  <div class="loading-overlay" *ngIf="isLoading">
+  <div class="loading-overlay" *ngIf="carregando">
     <div class="spinner"></div>
     <span>Processando dados...</span>
   </div>
@@ -16,21 +16,21 @@
   <div class="content">
     <!-- Search Control and Export -->
     <div class="search-container">
-      <button class="btn-add" (click)="addNewRow()">
+      <button class="btn-add" (click)="adicionarNovaLinha()">
         <i class="fas fa-plus"></i>
         Novo
       </button>
-      <button class="btn-clear" (click)="clearData()" *ngIf="filteredData.length > 0">
+      <button class="btn-clear" (click)="limparDados()" *ngIf="dadosFiltrados.length > 0">
         <i class="fas fa-trash-alt"></i>
         Limpar
       </button>
-      <button class="btn-import" (click)="triggerFileInput()">
+      <button class="btn-import" (click)="acionarInputArquivo()">
         <i class="fas fa-file-import"></i>
         Importar
       </button>
       <input type="file"
              id="fileInput"
-             (change)="onFileChange($event)"
+             (change)="aoAlterarArquivo($event)"
              class="hidden-file-input"
              title="Selecione um arquivo Excel para importar"
              placeholder="Selecione um arquivo Excel"
@@ -43,16 +43,16 @@
                  id="searchInput"
                  placeholder="Digite para pesquisar..."
                  title="Campo de pesquisa"
-                 [(ngModel)]="searchTerm"
-                 (input)="filterData()" />
+                 [(ngModel)]="termoBusca"
+                 (input)="filtrarDados()" />
         </div>
       </div>
 
-      <div class="actions-right" *ngIf="filteredData.length > 0">
+      <div class="actions-right" *ngIf="dadosFiltrados.length > 0">
         <div class="total-value">
-          Total: {{ getTotalValue() | currency:'BRL' }}
+          Total: {{ obterValorTotal() | currency:'BRL' }}
         </div>
-        <button class="btn-export" (click)="exportToExcel()">
+        <button class="btn-export" (click)="exportarParaExcel()">
           <i class="fas fa-file-export"></i>
           Exportar
         </button>
@@ -63,87 +63,87 @@
     <div class="table-container">
       <table>
         <thead>
-          <tr cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="dropColumn($event)">
-            <th *ngFor="let col of displayColumns" cdkDrag>
-              <div class="th-content" (click)="sortData(col.field)">
+          <tr cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="soltarColuna($event)">
+            <th *ngFor="let col of colunasExibidas" cdkDrag>
+              <div class="th-content" (click)="ordenarDados(col.field)">
                 {{ col.title }}
                 <i class="fas"
-                   [class.fa-sort-up]="sortColumn === col.field && sortDirection === 'asc'"
-                   [class.fa-sort-down]="sortColumn === col.field && sortDirection === 'desc'"
-                   [class.fa-sort]="sortColumn !== col.field || sortDirection === 'none'"></i>
+                   [class.fa-sort-up]="colunaOrdenacao === col.field && direcaoOrdenacao === 'asc'"
+                   [class.fa-sort-down]="colunaOrdenacao === col.field && direcaoOrdenacao === 'desc'"
+                   [class.fa-sort]="colunaOrdenacao !== col.field || direcaoOrdenacao === 'none'"></i>
               </div>
             </th>
             <th class="actions-column">Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="isEditing === -1">
-            <td *ngFor="let col of displayColumns">
+          <tr *ngIf="editando === -1">
+            <td *ngFor="let col of colunasExibidas">
               <label class="sr-only" [for]="'new-' + col.field">{{ col.title }}</label>
               <ng-container [ngSwitch]="col.field">
                 <ng-container *ngSwitchCase="'valor'">
                   <input type="number"
                          [id]="'new-' + col.field"
-                         [(ngModel)]="newRow[col.field]"
+                         [(ngModel)]="novaLinha[col.field]"
                          placeholder="0.00"
                          [title]="'Novo ' + col.title.toLowerCase()">
                 </ng-container>
                 <ng-container *ngSwitchDefault>
                   <input type="text"
                          [id]="'new-' + col.field"
-                         [(ngModel)]="newRow[col.field]"
+                         [(ngModel)]="novaLinha[col.field]"
                          [placeholder]="col.title"
                          [title]="'Novo ' + col.title.toLowerCase()">
                 </ng-container>
               </ng-container>
             </td>
             <td class="actions-column">
-              <button class="btn-save" (click)="saveNewRow()" title="Salvar">
+              <button class="btn-save" (click)="salvarNovaLinha()" title="Salvar">
                 <i class="fas fa-save"></i>
                 <span class="sr-only">Salvar</span>
               </button>
-              <button class="btn-cancel" (click)="cancelAdd()" title="Cancelar">
+              <button class="btn-cancel" (click)="cancelarAdicao()" title="Cancelar">
                 <i class="fas fa-times"></i>
                 <span class="sr-only">Cancelar</span>
               </button>
             </td>
           </tr>
-          <ng-container *ngIf="filteredData.length > 0; else emptyTable">
-            <tr *ngFor="let item of filteredData; let i = index" [class.editing]="isEditing === i">
-              <ng-container *ngIf="isEditing === i; else displayRow">
-                <td *ngFor="let col of displayColumns">
+          <ng-container *ngIf="dadosFiltrados.length > 0; else emptyTable">
+            <tr *ngFor="let item of dadosFiltrados; let i = index" [class.editing]="editando === i">
+              <ng-container *ngIf="editando === i; else displayRow">
+                <td *ngFor="let col of colunasExibidas">
                   <ng-container [ngSwitch]="col.field">
                     <ng-container *ngSwitchCase="'valor'">
                       <label class="sr-only" [for]="'valor-edit-' + i">Valor</label>
                       <input type="number"
                              [id]="'valor-edit-' + i"
-                             [(ngModel)]="editingRow[col.field]"
+                             [(ngModel)]="linhaEditando[col.field]"
                              placeholder="0.00"
                              title="Editar valor"
-                             (keyup)="handleKeyPress($event)">
+                             (keyup)="manipularTecla($event)">
                     </ng-container>
                     <ng-container *ngSwitchDefault>
                       <label class="sr-only" [for]="col.field + '-edit-' + i">{{ col.title }}</label>
                       <input type="text"
                              [id]="col.field + '-edit-' + i"
-                             [(ngModel)]="editingRow[col.field]"
+                             [(ngModel)]="linhaEditando[col.field]"
                              [placeholder]="col.title"
                              [title]="'Editar ' + col.title.toLowerCase()"
-                             (keyup)="handleKeyPress($event)">
+                             (keyup)="manipularTecla($event)">
                     </ng-container>
                   </ng-container>
                 </td>
                 <td class="actions-column">
-                  <button class="btn-save" (click)="saveEdit()" title="Salvar">
+                  <button class="btn-save" (click)="salvarEdicao()" title="Salvar">
                     <i class="fas fa-save"></i>
                   </button>
-                  <button class="btn-cancel" (click)="cancelEdit()" title="Cancelar">
+                  <button class="btn-cancel" (click)="cancelarEdicao()" title="Cancelar">
                     <i class="fas fa-times"></i>
                   </button>
                 </td>
               </ng-container>
               <ng-template #displayRow>
-                <td *ngFor="let col of displayColumns" (dblclick)="editField(i, col.field)">
+                <td *ngFor="let col of colunasExibidas" (dblclick)="editarCampo(i, col.field)">
                   <ng-container [ngSwitch]="col.field">
                     <ng-container *ngSwitchCase="'valor'">
                       {{ item[col.field] | currency:'BRL' }}
@@ -155,10 +155,10 @@
                 </td>
                 <!-- Coluna de ações fixa -->
                 <td class="actions-column">
-                  <button class="btn-edit" (click)="editField(i, 'nome')" title="Editar">
+                  <button class="btn-edit" (click)="editarCampo(i, 'nome')" title="Editar">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="btn-delete" (click)="deleteRow(i)" title="Excluir">
+                  <button class="btn-delete" (click)="excluirLinha(i)" title="Excluir">
                     <i class="fas fa-trash-alt"></i>
                   </button>
                 </td>
@@ -181,22 +181,22 @@
   </div>
 
   <!-- Modal de Confirmação -->
-  <div class="modal-overlay" *ngIf="showModal">
+  <div class="modal-overlay" *ngIf="mostrarModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>{{ modalTitle }}</h2>
-        <button type="button" class="btn-close" (click)="cancelModal()" title="Fechar">
+        <h2>{{ tituloModal }}</h2>
+        <button type="button" class="btn-close" (click)="cancelarModal()" title="Fechar">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
-        {{ modalMessage }}
+        {{ mensagemModal }}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" (click)="cancelModal()">
+        <button type="button" class="btn-cancel" (click)="cancelarModal()">
           <i class="fas fa-times"></i> Cancelar
         </button>
-        <button type="button" class="btn-confirm" (click)="confirmModal()">
+        <button type="button" class="btn-confirm" (click)="confirmarModal()">
           <i class="fas fa-check"></i> Confirmar
         </button>
       </div>
