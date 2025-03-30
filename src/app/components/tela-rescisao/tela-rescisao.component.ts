@@ -351,7 +351,7 @@ export class TelaRescisaoComponent implements OnInit {
     localStorage.setItem('ordemColunas', JSON.stringify(this.colunasExibidas));
   }
 
-  ordenarDados(coluna: string) {
+  ordenarDadosColunas(coluna: string) {
     if (this.colunaOrdenacao === coluna) {
       if (this.direcaoOrdenacao === 'asc') {
         this.direcaoOrdenacao = 'desc';

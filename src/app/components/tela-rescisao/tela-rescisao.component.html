@@ -65,7 +65,7 @@
         <thead>
           <tr cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="soltarColuna($event)">
             <th *ngFor="let col of colunasExibidas" cdkDrag>
-              <div class="th-content" (click)="ordenarDados(col.field)">
+              <div class="th-content" (click)="ordenarDadosColunas(col.field)">
                 {{ col.title }}
                 <i class="fas"
                    [class.fa-sort-up]="colunaOrdenacao === col.field && direcaoOrdenacao === 'asc'"
