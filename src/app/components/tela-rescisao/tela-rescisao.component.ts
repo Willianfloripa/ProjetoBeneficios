@@ -20,7 +20,7 @@ export interface DadosPlanilha {
   observacao?: string;
 }
 
-interface ColumnDef {
+interface ColunaDef {
   field: string;
   title: string;
 }
@@ -51,7 +51,8 @@ export class TelaRescisaoComponent implements OnInit {
   tituloModal: string = '';
   mensagemModal: string = '';
   callbackModal: () => void = () => {};
-  colunasExibidas: ColumnDef[] = [
+
+  private readonly COLUNAS_PADRAO: ColunaDef[] = [
     { field: 'planos', title: 'Planos' },
     { field: 'matricula', title: 'Matrícula' },
     { field: 'nome', title: 'Nome' },
@@ -61,6 +62,8 @@ export class TelaRescisaoComponent implements OnInit {
     { field: 'observacao', title: 'Observação' }
   ];
 
+  colunasExibidas: ColunaDef[] = [...this.COLUNAS_PADRAO];
+
   constructor(private dataService: DataService, private router: Router) {
     this.dadosFiltrados = this.dataService.getData();
   }
@@ -68,12 +71,10 @@ export class TelaRescisaoComponent implements OnInit {
   ngOnInit() {
     localStorage.removeItem('ordemColunas');
     this.carregarOrdemColunas();
-    this.dadosFiltrados = this.dataService.getData();
   }
 
-  // 4. Funcionalidades do Sistema
-  // 4.1 Importação de Dados
-  aoAlterarArquivo(evento: any) {
+  // Importação de Dados e Exportação de Dados
+  importarArquivo(evento: any) {
     const arquivo = evento.target.files[0];
     if (arquivo) {
       this.carregando = true;
@@ -176,7 +177,54 @@ export class TelaRescisaoComponent implements OnInit {
     return dado;
   }
 
-  filtrarDados() {
+  private carregarOrdemColunas() {
+    const ordemSalva = localStorage.getItem('ordemColunas');
+    if (ordemSalva) {
+      const colunasSalvas = JSON.parse(ordemSalva);
+      this.colunasExibidas = colunasSalvas.filter((col: ColunaDef) =>
+        this.COLUNAS_PADRAO.some(colVal => colVal.field === col.field)
+      );
+    } else {
+      this.colunasExibidas = [...this.COLUNAS_PADRAO];
+    }
+  }
+
+  exportarParaExcel() {
+    const dadosParaExportar = this.dadosFiltrados.map(item => {
+      const linha: any = {};
+      this.colunasExibidas.forEach(col => {
+        const valor = item[col.field];
+        linha[col.title] = col.field === 'valor' && valor ?
+          `R$ ${typeof valor === 'number' ? valor.toFixed(2) : valor}` :
+          (valor || '');
+      });
+      return linha;
+    });
+
+    dadosParaExportar.push(Object.fromEntries(this.colunasExibidas.map(col => [col.title, ''])));
+
+    const linhaTotal: any = Object.fromEntries(this.colunasExibidas.map(col => [col.title, '']));
+    linhaTotal[this.colunasExibidas[0].title] = 'VALOR TOTAL A DESCONTAR';
+    linhaTotal[this.colunasExibidas.find(col => col.field === 'valor')?.title || ''] =
+      `R$ ${this.obterValorTotal().toFixed(2)}`;
+    dadosParaExportar.push(linhaTotal);
+
+    const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+    ws['!merges'] = [
+      { s: { r: dadosParaExportar.length - 1, c: 0 }, e: { r: dadosParaExportar.length - 1, c: this.colunasExibidas.length - 2 } }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dados');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+
+    saveAs(blob, `dados_exportados_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+
+  //CRUD
+  barraPesquisa() {
     if (!this.termoBusca) {
       this.dadosFiltrados = this.dataService.getData();
       return;
@@ -200,6 +248,17 @@ export class TelaRescisaoComponent implements OnInit {
       descricao: '',
       observacao: ''
     };
+  }
+
+  cancelarAdicao() {
+    this.editando = -2;
+    this.novaLinha = {};
+  }
+
+  cancelarEdicao() {
+    this.editando = -2;
+    this.campoEditando = '';
+    this.linhaEditando = {};
   }
 
   editarCampo(indice: number, campo: string) {
@@ -266,95 +325,32 @@ export class TelaRescisaoComponent implements OnInit {
         if (indiceOriginal > -1) {
           dados.splice(indiceOriginal, 1);
           this.dataService.setData(dados);
-          this.filtrarDados();
+          this.barraPesquisa();
         }
       }
     );
   }
 
-  exportarParaExcel() {
-    const dadosParaExportar = this.dadosFiltrados.map(item => {
-      const linha: any = {};
-      this.colunasExibidas.forEach(col => {
-        const valor = item[col.field];
-        linha[col.title] = col.field === 'valor' && valor ?
-          `R$ ${typeof valor === 'number' ? valor.toFixed(2) : valor}` :
-          (valor || '');
-      });
-      return linha;
-    });
-
-    dadosParaExportar.push(Object.fromEntries(this.colunasExibidas.map(col => [col.title, ''])));
-
-    const linhaTotal: any = Object.fromEntries(this.colunasExibidas.map(col => [col.title, '']));
-    linhaTotal[this.colunasExibidas[0].title] = 'VALOR TOTAL A DESCONTAR';
-    linhaTotal[this.colunasExibidas.find(col => col.field === 'valor')?.title || ''] =
-      `R$ ${this.obterValorTotal().toFixed(2)}`;
-    dadosParaExportar.push(linhaTotal);
-
-    const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
-    ws['!merges'] = [
-      { s: { r: dadosParaExportar.length - 1, c: 0 }, e: { r: dadosParaExportar.length - 1, c: this.colunasExibidas.length - 2 } }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-
-    saveAs(blob, `dados_exportados_${new Date().toISOString().split('T')[0]}.xlsx`);
+  limparDados() {
+    this.abrirModal(
+      'Limpar Dados',
+      'Tem certeza que deseja limpar todos os dados?',
+      () => {
+        this.dataService.clearData();
+        this.dadosFiltrados = [];
+        this.termoBusca = '';
+        const inputArquivo = document.getElementById('fileInput') as HTMLInputElement;
+        if (inputArquivo) {
+          inputArquivo.value = '';
+        }
+      }
+    );
   }
 
-  obterValorTotal(): number {
-    return this.dadosFiltrados.reduce((total, item) => total + (item.valor || 0), 0);
-  }
-
-  abrirModal(titulo: string, mensagem: string, callback: () => void) {
-    this.tituloModal = titulo;
-    this.mensagemModal = mensagem;
-    this.callbackModal = callback;
-    this.mostrarModal = true;
-  }
-
-  cancelarModal() {
-    this.mostrarModal = false;
-  }
-
-  confirmarModal() {
-    this.callbackModal();
-    this.mostrarModal = false;
-  }
-
-  manipularTecla(evento: KeyboardEvent) {
-    if (evento.key === 'Enter') {
-      this.salvarEdicao();
-    } else if (evento.key === 'Escape') {
-      this.cancelarEdicao();
-    }
-  }
-
-  cancelarAdicao() {
-    this.editando = -2;
-    this.novaLinha = {};
-  }
-
-  cancelarEdicao() {
-    this.editando = -2;
-    this.campoEditando = '';
-    this.linhaEditando = {};
-  }
-
+  //Ordenação colunas
   soltarColuna(evento: CdkDragDrop<any[]>) {
     moveItemInArray(this.colunasExibidas, evento.previousIndex, evento.currentIndex);
     localStorage.setItem('ordemColunas', JSON.stringify(this.colunasExibidas));
-  }
-
-  acionarInputArquivo() {
-    const inputArquivo = document.getElementById('fileInput') as HTMLInputElement;
-    if (inputArquivo) {
-      inputArquivo.click();
-    }
   }
 
   ordenarDados(coluna: string) {
@@ -390,6 +386,47 @@ export class TelaRescisaoComponent implements OnInit {
       const comparacao = valorA > valorB ? 1 : -1;
       return this.direcaoOrdenacao === 'asc' ? comparacao : -comparacao;
     });
+  }
+
+  //Modal de confirmação
+  abrirModal(titulo: string, mensagem: string, callback: () => void) {
+    this.tituloModal = titulo;
+    this.mensagemModal = mensagem;
+    this.callbackModal = callback;
+    this.mostrarModal = true;
+  }
+
+  cancelarModal() {
+    this.mostrarModal = false;
+  }
+
+  confirmarModal() {
+    this.callbackModal();
+    this.mostrarModal = false;
+  }
+
+  voltar() {
+    this.router.navigate(['/']);
+  }
+
+  //Funções auxiliares
+  obterValorTotal(): number {
+    return this.dadosFiltrados.reduce((total, item) => total + (item.valor || 0), 0);
+  }
+
+  manipularTecla(evento: KeyboardEvent) {
+    if (evento.key === 'Enter') {
+      this.salvarEdicao();
+    } else if (evento.key === 'Escape') {
+      this.cancelarEdicao();
+    }
+  }
+
+  inputArquivo() {
+    const inputArquivo = document.getElementById('fileInput') as HTMLInputElement;
+    if (inputArquivo) {
+      inputArquivo.click();
+    }
   }
 
   private formatarNome(valor: string): string {
@@ -429,44 +466,6 @@ export class TelaRescisaoComponent implements OnInit {
     return isNaN(valorNumerico) ? 0 : valorNumerico;
   }
 
-  private carregarOrdemColunas() {
-    const colunasValidas: ColumnDef[] = [
-      { field: 'planos', title: 'Planos' },
-      { field: 'matricula', title: 'Matrícula' },
-      { field: 'nome', title: 'Nome' },
-      { field: 'cpf', title: 'CPF' },
-      { field: 'valor', title: 'Valor' },
-      { field: 'descricao', title: 'Descrição' },
-      { field: 'observacao', title: 'Observação' }
-    ];
-
-    const ordemSalva = localStorage.getItem('ordemColunas');
-    if (ordemSalva) {
-      const colunasSalvas = JSON.parse(ordemSalva);
-      this.colunasExibidas = colunasSalvas.filter((col: ColumnDef) =>
-        colunasValidas.some(colVal => colVal.field === col.field)
-      );
-    } else {
-      this.colunasExibidas = colunasValidas;
-    }
-  }
-
-  limparDados() {
-    this.abrirModal(
-      'Limpar Dados',
-      'Tem certeza que deseja limpar todos os dados?',
-      () => {
-        this.dataService.clearData();
-        this.dadosFiltrados = [];
-        this.termoBusca = '';
-        const inputArquivo = document.getElementById('fileInput') as HTMLInputElement;
-        if (inputArquivo) {
-          inputArquivo.value = '';
-        }
-      }
-    );
-  }
-
   private registroValido(dado: DadosPlanilha): boolean {
     return !!(
       dado.nome?.trim() ||
@@ -483,9 +482,5 @@ export class TelaRescisaoComponent implements OnInit {
            a.valor === b.valor &&
            a.descricao === b.descricao &&
            a.observacao === b.observacao;
-  }
-
-  voltar() {
-    this.router.navigate(['/']);
   }
 }

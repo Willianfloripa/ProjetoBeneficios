@@ -24,13 +24,13 @@
         <i class="fas fa-trash-alt"></i>
         Limpar
       </button>
-      <button class="btn-import" (click)="acionarInputArquivo()">
+      <button class="btn-import" (click)="inputArquivo()">
         <i class="fas fa-file-import"></i>
         Importar
       </button>
       <input type="file"
              id="fileInput"
-             (change)="aoAlterarArquivo($event)"
+             (change)="importarArquivo($event)"
              class="hidden-file-input"
              title="Selecione um arquivo Excel para importar"
              placeholder="Selecione um arquivo Excel"
@@ -44,7 +44,7 @@
                  placeholder="Digite para pesquisar..."
                  title="Campo de pesquisa"
                  [(ngModel)]="termoBusca"
-                 (input)="filtrarDados()" />
+                 (input)="barraPesquisa()" />
         </div>
       </div>
 
