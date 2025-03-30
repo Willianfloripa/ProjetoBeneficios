@@ -8,7 +8,6 @@ import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-
 import { Router } from '@angular/router';
 import { saveAs } from 'file-saver';
 
-// 2. Estrutura de Dados
 export interface DadosPlanilha {
   [key: string]: string | number | undefined;
   nome?: string;
@@ -37,7 +36,6 @@ interface ColunaDef {
   ]
 })
 export class TelaRescisaoComponent implements OnInit {
-  // 3. Estados e Variáveis Principais
   carregando: boolean = false;
   dadosFiltrados: DadosPlanilha[] = [];
   termoBusca: string = '';
