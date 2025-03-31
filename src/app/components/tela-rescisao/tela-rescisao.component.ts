@@ -132,6 +132,8 @@ export class TelaRescisaoComponent implements OnInit {
           const dadosCombinados = [...dadosExistentes, ...dadosNovos];
           this.dataService.setData(dadosCombinados);
           this.dadosFiltrados = dadosCombinados;
+          this.totalPaginas = Math.ceil(this.dadosFiltrados.length / this.itensPorPagina);
+          this.paginaAtual = 1;
         } catch (erro) {
           console.error('Erro ao processar arquivo:', erro);
           this.abrirModal(
@@ -362,6 +364,8 @@ export class TelaRescisaoComponent implements OnInit {
         this.dataService.clearData();
         this.dadosFiltrados = [];
         this.termoBusca = '';
+        this.totalPaginas = 1;
+        this.paginaAtual = 1;
         const inputArquivo = document.getElementById('fileInput') as HTMLInputElement;
         if (inputArquivo) {
           inputArquivo.value = '';
