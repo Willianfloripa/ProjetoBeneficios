@@ -11,45 +11,56 @@ export class DataService {
 
   constructor(@Inject(PLATFORM_ID) platformId: Object) {
     this.isBrowser = isPlatformBrowser(platformId);
+    this.loadData();
+  }
 
+  private loadData() {
     if (this.isBrowser) {
-      const savedData = localStorage.getItem(this.STORAGE_KEY);
-      if (savedData) {
-        this.data = JSON.parse(savedData);
+      try {
+        const savedData = localStorage.getItem(this.STORAGE_KEY);
+        if (savedData) {
+          this.data = JSON.parse(savedData);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do localStorage:', error);
+        this.data = [];
       }
     }
   }
 
   getData(): any[] {
-    return this.data;
+    return [...this.data];
   }
 
   setData(data: any[]) {
-    this.data = data;
-    if (this.isBrowser) {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-    }
+    this.data = [...data];
+    this.saveData();
   }
 
   addData(newData: any) {
     this.data.push(newData);
-    if (this.isBrowser) {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-    }
+    this.saveData();
   }
 
   clearData() {
     this.data = [];
+    this.saveData();
+  }
+
+  private saveData() {
     if (this.isBrowser) {
-      localStorage.removeItem(this.STORAGE_KEY);
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+      } catch (error) {
+        console.error('Erro ao salvar dados no localStorage:', error);
+      }
     }
   }
 
   async loadInitialData(): Promise<void> {
-    // Simula um carregamento inicial de dados
     return new Promise((resolve) => {
       setTimeout(() => {
-        this.data = [];
+        this.loadData();
         resolve();
       }, 1000);
     });
