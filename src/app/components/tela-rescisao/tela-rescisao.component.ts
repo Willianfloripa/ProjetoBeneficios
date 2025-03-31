@@ -50,6 +50,26 @@ export class TelaRescisaoComponent implements OnInit {
   mensagemModal: string = '';
   callbackModal: () => void = () => {};
 
+  // Propriedades de paginação
+  paginaAtual: number = 1;
+  itensPorPagina: number = 50;
+  totalPaginas: number = 1;
+
+  // Getter para dados paginados
+  get dadosPaginados(): DadosPlanilha[] {
+    const inicio = (this.paginaAtual - 1) * this.itensPorPagina;
+    const fim = inicio + this.itensPorPagina;
+    return this.dadosFiltrados.slice(inicio, fim);
+  }
+
+  // Método para mudar de página
+  mudarPagina(pagina: number) {
+    if (pagina >= 1 && pagina <= this.totalPaginas) {
+      this.paginaAtual = pagina;
+      this.editando = -2; // Cancela qualquer edição em andamento
+    }
+  }
+
   private readonly COLUNAS_PADRAO: ColunaDef[] = [
     { field: 'planos', title: 'Planos' },
     { field: 'matricula', title: 'Matrícula' },
@@ -64,6 +84,7 @@ export class TelaRescisaoComponent implements OnInit {
 
   constructor(private dataService: DataService, private router: Router) {
     this.dadosFiltrados = this.dataService.getData();
+    this.totalPaginas = Math.ceil(this.dadosFiltrados.length / this.itensPorPagina);
   }
 
   ngOnInit() {
@@ -223,16 +244,18 @@ export class TelaRescisaoComponent implements OnInit {
 
   //CRUD
   barraPesquisa() {
-    if (!this.termoBusca) {
+    if (!this.termoBusca || this.termoBusca.length < 3) {
       this.dadosFiltrados = this.dataService.getData();
-      return;
+    } else {
+      const termoMinusculo = this.termoBusca.toLowerCase();
+      this.dadosFiltrados = this.dataService.getData().filter(item =>
+        (item.nome?.toLowerCase().includes(termoMinusculo) ||
+         item.matricula?.toLowerCase().includes(termoMinusculo) ||
+         item.cpf?.toLowerCase().includes(termoMinusculo))
+      );
     }
-    const termoMinusculo = this.termoBusca.toLowerCase();
-    this.dadosFiltrados = this.dataService.getData().filter(item =>
-      Object.values(item).some(value =>
-        value?.toString().toLowerCase().includes(termoMinusculo)
-      )
-    );
+    this.totalPaginas = Math.ceil(this.dadosFiltrados.length / this.itensPorPagina);
+    this.paginaAtual = 1;
   }
 
   adicionarNovaLinha() {
@@ -260,9 +283,10 @@ export class TelaRescisaoComponent implements OnInit {
   }
 
   editarCampo(indice: number, campo: string) {
-    this.editando = indice;
+    const indiceReal = (this.paginaAtual - 1) * this.itensPorPagina + indice;
+    this.editando = indiceReal;
     this.campoEditando = campo;
-    this.linhaEditando = { ...this.dadosFiltrados[indice] };
+    this.linhaEditando = { ...this.dadosFiltrados[indiceReal] };
   }
 
   salvarNovaLinha() {
@@ -308,11 +332,12 @@ export class TelaRescisaoComponent implements OnInit {
   }
 
   excluirLinha(indice: number) {
+    const indiceReal = (this.paginaAtual - 1) * this.itensPorPagina + indice;
     this.abrirModal(
       'Excluir Registro',
       'Tem certeza que deseja excluir este registro?',
       () => {
-        const itemParaExcluir = this.dadosFiltrados[indice];
+        const itemParaExcluir = this.dadosFiltrados[indiceReal];
         const dados = this.dataService.getData();
         const indiceOriginal = dados.findIndex(item =>
           item.nome === itemParaExcluir.nome &&
@@ -384,6 +409,9 @@ export class TelaRescisaoComponent implements OnInit {
       const comparacao = valorA > valorB ? 1 : -1;
       return this.direcaoOrdenacao === 'asc' ? comparacao : -comparacao;
     });
+
+    this.totalPaginas = Math.ceil(this.dadosFiltrados.length / this.itensPorPagina);
+    this.paginaAtual = 1;
   }
 
   //Modal de confirmação
