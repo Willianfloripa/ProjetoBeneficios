@@ -163,22 +163,44 @@ export class TelaRescisaoComponent implements OnInit {
     const indices: { [key: string]: number } = {};
     let linhaHeader = 0;
 
+    // Primeiro, encontrar a linha do cabeçalho
     for (let linha = 0; linha < Math.min(10, dadosPlanilha.length); linha++) {
+      let encontrouHeader = false;
+
       for (let col = 0; col < dadosPlanilha[linha].length; col++) {
         const valor = String(dadosPlanilha[linha][col] || '').toLowerCase().trim();
 
         if (valor) {
-          if (valor.match(/^nome$/)) indices['nome'] = col;
-          else if (valor.match(/descricao|desc/)) indices['descricao'] = col;
-          else if (valor.match(/matric|cod|registro/)) indices['matricula'] = col;
-          else if (valor.match(/cpf|cnpj|doc/)) indices['cpf'] = col;
-          else if (valor.match(/planos/)) indices['planos'] = col;
-          else if (valor.match(/valor|preco|custo/)) indices['valor'] = col;
-          else if (valor.match(/obs|observ|nota/)) indices['observacao'] = col;
-          linhaHeader = linha;
+          // Verificar se parece um cabeçalho (não é um número)
+          if (!valor.match(/^\d+$/) && !valor.match(/^\d+[,\.]\d+$/)) {
+            if (valor.match(/^nome$/)) {
+              indices['nome'] = col;
+              encontrouHeader = true;
+            }
+            else if (valor.match(/^descricao|^desc$/)) indices['descricao'] = col;
+            else if (valor.match(/^matricula|^matric|cod|registro/)) {
+              indices['matricula'] = col;
+              encontrouHeader = true;
+            }
+            else if (valor.match(/^cpf$|^cnpj$|^documento$|^doc$/)) {
+              // Não sobrescrever se já foi definido
+              if (indices['cpf'] === undefined) indices['cpf'] = col;
+            }
+            else if (valor.match(/^planos$/)) indices['planos'] = col;
+            else if (valor.match(/^valor$|^preco$|^custo$/)) {
+              // Não sobrescrever se já foi definido e garantir que não seja confundido com CPF
+              if (indices['valor'] === undefined) indices['valor'] = col;
+            }
+            else if (valor.match(/^obs|^observ|^nota/)) indices['observacao'] = col;
+          }
         }
       }
-      if (indices['nome'] !== undefined || indices['matricula'] !== undefined) break;
+
+      // Se encontrou pelo menos nome ou matricula, esta é a linha do cabeçalho
+      if (encontrouHeader) {
+        linhaHeader = linha;
+        break;
+      }
     }
 
     return { linhaHeader, indices };
@@ -187,13 +209,49 @@ export class TelaRescisaoComponent implements OnInit {
   private extrairDadosLinha(linha: any[], indices: { [key: string]: number }): DadosPlanilha {
     const dado: DadosPlanilha = {};
 
-    if (indices['nome'] !== undefined) dado.nome = this.formatarNome(String(linha[indices['nome']] || ''));
-    if (indices['descricao'] !== undefined) dado.descricao = String(linha[indices['descricao']] || '');
-    if (indices['matricula'] !== undefined) dado.matricula = String(linha[indices['matricula']] || '');
-    if (indices['cpf'] !== undefined) dado.cpf = this.formatarCPF(String(linha[indices['cpf']] || ''));
-    if (indices['planos'] !== undefined) dado.planos = String(linha[indices['planos']] || '');
-    if (indices['valor'] !== undefined) dado.valor = this.converterValor(linha[indices['valor']]);
-    if (indices['observacao'] !== undefined) dado.observacao = String(linha[indices['observacao']] || '');
+    if (indices['nome'] !== undefined && indices['nome'] < linha.length) {
+      dado.nome = this.formatarNome(String(linha[indices['nome']] || ''));
+    }
+    if (indices['descricao'] !== undefined && indices['descricao'] < linha.length) {
+      dado.descricao = String(linha[indices['descricao']] || '');
+    }
+    if (indices['matricula'] !== undefined && indices['matricula'] < linha.length) {
+      dado.matricula = String(linha[indices['matricula']] || '');
+    }
+
+    // Extrair CPF - garantir que está pegando da coluna correta
+    if (indices['cpf'] !== undefined && indices['cpf'] < linha.length) {
+      const valorCPF = linha[indices['cpf']];
+      // Garantir que não está pegando valor monetário por engano
+      const valorCPFStr = String(valorCPF || '').trim();
+      if (valorCPFStr && !valorCPFStr.match(/^[R$]/) && !valorCPFStr.match(/^\d+[,\.]\d+$/)) {
+        dado.cpf = this.formatarCPF(valorCPFStr);
+      }
+    }
+
+    if (indices['planos'] !== undefined && indices['planos'] < linha.length) {
+      dado.planos = String(linha[indices['planos']] || '');
+    }
+
+    // Extrair valor - garantir que está pegando da coluna correta e não é CPF
+    if (indices['valor'] !== undefined && indices['valor'] < linha.length) {
+      const valorBruto = linha[indices['valor']];
+      const valorStr = String(valorBruto || '').trim();
+
+      // Validar que não é um CPF sendo interpretado como valor
+      // CPF tem formato XXX.XXX.XXX-XX ou 11 dígitos consecutivos
+      const digitosValor = valorStr.replace(/\D/g, '');
+      const temFormatoCPF = valorStr.match(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/) ||
+                           (digitosValor.length === 11 && !valorStr.match(/[R$]/));
+
+      if (!temFormatoCPF) {
+        dado.valor = this.converterValor(valorBruto);
+      }
+    }
+
+    if (indices['observacao'] !== undefined && indices['observacao'] < linha.length) {
+      dado.observacao = String(linha[indices['observacao']] || '');
+    }
 
     return dado;
   }
@@ -482,7 +540,15 @@ export class TelaRescisaoComponent implements OnInit {
     if (typeof valor === 'number') return valor;
     if (!valor) return 0;
 
-    let valorStr = valor.toString()
+    let valorStr = String(valor).trim();
+
+    // Se parece um CPF (XXX.XXX.XXX-XX ou 11 dígitos), retornar 0
+    const digitos = valorStr.replace(/\D/g, '');
+    if (digitos.length === 11 && (valorStr.match(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/) || !valorStr.match(/[R$]/))) {
+      return 0;
+    }
+
+    valorStr = valorStr
       .replace(/[R$\s]/g, '')
       .replace(/\./g, '')
       .replace(',', '.');
