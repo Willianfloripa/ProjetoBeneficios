@@ -107,7 +107,7 @@ export class TelaRescisaoComponent implements OnInit {
           planilha.SheetNames.forEach(nomeAba => {
             const planilhaAtual = planilha.Sheets[nomeAba];
             const dadosPlanilha = XLSX.utils.sheet_to_json<any[]>(planilhaAtual, {
-              raw: false,
+              raw: true,
               header: 1,
               defval: ''
             }) as any[][];
@@ -274,7 +274,7 @@ export class TelaRescisaoComponent implements OnInit {
       this.colunasExibidas.forEach(col => {
         const valor = item[col.field];
         linha[col.title] = col.field === 'valor' && valor ?
-          `R$ ${typeof valor === 'number' ? valor.toFixed(2) : valor}` :
+          this.formatarMoeda(typeof valor === 'number' ? valor : 0) :
           (valor || '');
       });
       return linha;
@@ -285,7 +285,7 @@ export class TelaRescisaoComponent implements OnInit {
     const linhaTotal: any = Object.fromEntries(this.colunasExibidas.map(col => [col.title, '']));
     linhaTotal[this.colunasExibidas[0].title] = 'VALOR TOTAL A DESCONTAR';
     linhaTotal[this.colunasExibidas.find(col => col.field === 'valor')?.title || ''] =
-      `R$ ${this.obterValorTotal().toFixed(2)}`;
+      this.formatarMoeda(this.obterValorTotal());
     dadosParaExportar.push(linhaTotal);
 
     const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
@@ -325,7 +325,7 @@ export class TelaRescisaoComponent implements OnInit {
       matricula: '',
       cpf: '',
       planos: '',
-      valor: 0,
+      valor: '' as any,
       descricao: '',
       observacao: ''
     };
@@ -347,12 +347,25 @@ export class TelaRescisaoComponent implements OnInit {
     this.editando = indiceReal;
     this.campoEditando = campo;
     this.linhaEditando = { ...this.dadosFiltrados[indiceReal] };
+    // Formatar valor para exibição no input (como string)
+    if (this.linhaEditando.valor) {
+      this.linhaEditando.valor = (this.linhaEditando.valor as number).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) as any;
+    } else {
+      this.linhaEditando.valor = '' as any;
+    }
   }
 
   salvarNovaLinha() {
     if (this.novaLinha.nome) {
       if (this.novaLinha.cpf) {
         this.novaLinha.cpf = this.formatarCPF(this.novaLinha.cpf);
+      }
+      // Converter valor formatado (texto) para número
+      if (typeof this.novaLinha.valor === 'string') {
+        this.novaLinha.valor = this.converterValor(this.novaLinha.valor);
       }
       this.dataService.setData([this.novaLinha, ...this.dataService.getData()]);
       this.dadosFiltrados = this.dataService.getData();
@@ -364,6 +377,10 @@ export class TelaRescisaoComponent implements OnInit {
     if (this.linhaEditando.nome) {
       if (this.linhaEditando.cpf) {
         this.linhaEditando.cpf = this.formatarCPF(this.linhaEditando.cpf);
+      }
+      // Converter valor formatado (texto) para número
+      if (typeof this.linhaEditando.valor === 'string') {
+        this.linhaEditando.valor = this.converterValor(this.linhaEditando.valor);
       }
 
       const dados = this.dataService.getData();
@@ -502,6 +519,15 @@ export class TelaRescisaoComponent implements OnInit {
     return this.dadosFiltrados.reduce((total, item) => total + (item.valor || 0), 0);
   }
 
+  formatarMoeda(valor: number | string | undefined): string {
+    if (!valor && valor !== 0) return 'R$ 0,00';
+    const valorNumerico = typeof valor === 'string' ? parseFloat(valor) || 0 : valor;
+    return 'R$ ' + valorNumerico.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
   manipularTecla(evento: KeyboardEvent) {
     if (evento.key === 'Enter') {
       this.salvarEdicao();
@@ -548,17 +574,34 @@ export class TelaRescisaoComponent implements OnInit {
       return 0;
     }
 
-    valorStr = valorStr
-      .replace(/[R$\s]/g, '')
-      .replace(/\./g, '')
-      .replace(',', '.');
+    // Remover R$ e espaços
+    valorStr = valorStr.replace(/[R$\s]/g, '');
 
-    let valorNumerico = parseFloat(valorStr);
+    // Verificar se tem vírgula (separador decimal brasileiro)
+    const temVirgula = valorStr.includes(',');
+    const temPonto = valorStr.includes('.');
 
-    if (Number.isInteger(valorNumerico) && valorNumerico > 100) {
-      valorNumerico = valorNumerico / 100;
+    if (temVirgula && temPonto) {
+      // Formato brasileiro: 2.329,95 (ponto é milhar, vírgula é decimal)
+      // Remover TODOS os pontos (separadores de milhar) e substituir vírgula por ponto (decimal)
+      valorStr = valorStr.replace(/\./g, '').replace(',', '.');
+    } else if (temVirgula && !temPonto) {
+      // Só tem vírgula: 2329,95 (vírgula é decimal)
+      valorStr = valorStr.replace(',', '.');
+    } else if (!temVirgula && temPonto) {
+      // Só tem ponto: pode ser 2329.95 (decimal) ou 2.329 (milhar sem decimal)
+      const partes = valorStr.split('.');
+      if (partes.length === 2 && partes[1].length <= 2) {
+        // Formato decimal: 2329.95 - manter como está
+        // Não fazer nada
+      } else {
+        // Formato milhar: 2.329 ou 2.329.456 - remover TODOS os pontos
+        valorStr = valorStr.replace(/\./g, '');
+      }
     }
+    // Se não tem nem vírgula nem ponto, manter como está (número inteiro)
 
+    const valorNumerico = parseFloat(valorStr);
     return isNaN(valorNumerico) ? 0 : valorNumerico;
   }
 

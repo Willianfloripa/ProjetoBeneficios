@@ -50,7 +50,7 @@
 
       <div class="actions-right" *ngIf="dadosFiltrados.length > 0">
         <div class="total-value">
-          Total: {{ obterValorTotal() | currency:'BRL' }}
+          Total: {{ formatarMoeda(obterValorTotal()) }}
         </div>
         <button class="btn-export" (click)="exportarParaExcel()">
           <i class="fas fa-file-export"></i>
@@ -82,10 +82,10 @@
               <label class="sr-only" [for]="'new-' + col.field">{{ col.title }}</label>
               <ng-container [ngSwitch]="col.field">
                 <ng-container *ngSwitchCase="'valor'">
-                  <input type="number"
+                  <input type="text"
                          [id]="'new-' + col.field"
                          [(ngModel)]="novaLinha[col.field]"
-                         placeholder="0.00"
+                         placeholder="0,00"
                          [title]="'Novo ' + col.title.toLowerCase()">
                 </ng-container>
                 <ng-container *ngSwitchDefault>
@@ -115,10 +115,10 @@
                   <ng-container [ngSwitch]="col.field">
                     <ng-container *ngSwitchCase="'valor'">
                       <label class="sr-only" [for]="'valor-edit-' + i">Valor</label>
-                      <input type="number"
+                      <input type="text"
                              [id]="'valor-edit-' + i"
                              [(ngModel)]="linhaEditando[col.field]"
-                             placeholder="0.00"
+                             placeholder="0,00"
                              title="Editar valor"
                              (keyup)="manipularTecla($event)">
                     </ng-container>
@@ -146,7 +146,7 @@
                 <td *ngFor="let col of colunasExibidas" (dblclick)="editarCampo(i, col.field)">
                   <ng-container [ngSwitch]="col.field">
                     <ng-container *ngSwitchCase="'valor'">
-                      {{ item[col.field] | currency:'BRL' }}
+                      {{ formatarMoeda(item[col.field]) }}
                     </ng-container>
                     <ng-container *ngSwitchDefault>
                       {{ item[col.field] }}
