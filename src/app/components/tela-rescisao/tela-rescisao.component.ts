@@ -11,9 +11,12 @@ import { saveAs } from 'file-saver';
 export interface DadosPlanilha {
   [key: string]: string | number | undefined;
   nome?: string;
+  nome_dependente?: string;
+  grau_parentesco?: string;
   matricula?: string;
   cpf?: string;
   planos?: string;
+  sinistro?: number;
   valor?: number;
   descricao?: string;
   observacao?: string;
@@ -70,11 +73,16 @@ export class TelaRescisaoComponent implements OnInit {
     }
   }
 
+  private readonly CAMPOS_MONETARIOS = ['valor', 'sinistro'] as const;
+
   private readonly COLUNAS_PADRAO: ColunaDef[] = [
     { field: 'planos', title: 'Planos' },
     { field: 'matricula', title: 'Matrícula' },
     { field: 'nome', title: 'Nome' },
+    { field: 'nome_dependente', title: 'Nome do Dependente' },
+    { field: 'grau_parentesco', title: 'Grau de Parentesco' },
     { field: 'cpf', title: 'CPF' },
+    { field: 'sinistro', title: 'Sinistro' },
     { field: 'valor', title: 'Valor' },
     { field: 'descricao', title: 'Descrição' },
     { field: 'observacao', title: 'Observação' }
@@ -177,6 +185,16 @@ export class TelaRescisaoComponent implements OnInit {
               indices['nome'] = col;
               encontrouHeader = true;
             }
+            else if (valor.match(/titularidade|dependentes/)) {
+              indices['nome_dependente'] = col;
+              encontrouHeader = true;
+            }
+            else if (valor.match(/grau.*parentesco|^parentesco$/) || valor === 'td') {
+              if (indices['grau_parentesco'] === undefined) {
+                indices['grau_parentesco'] = col;
+              }
+              encontrouHeader = true;
+            }
             else if (valor.match(/^descricao|^desc$/)) indices['descricao'] = col;
             else if (valor.match(/^matricula|^matric|cod|registro/)) {
               indices['matricula'] = col;
@@ -187,6 +205,12 @@ export class TelaRescisaoComponent implements OnInit {
               if (indices['cpf'] === undefined) indices['cpf'] = col;
             }
             else if (valor.match(/^planos$/)) indices['planos'] = col;
+            else if (valor.match(/sinistro/)) {
+              if (indices['sinistro'] === undefined) {
+                indices['sinistro'] = col;
+              }
+              encontrouHeader = true;
+            }
             else if (valor.match(/^valor$|^preco$|^custo$/)) {
               // Não sobrescrever se já foi definido e garantir que não seja confundido com CPF
               if (indices['valor'] === undefined) indices['valor'] = col;
@@ -218,6 +242,17 @@ export class TelaRescisaoComponent implements OnInit {
     if (indices['matricula'] !== undefined && indices['matricula'] < linha.length) {
       dado.matricula = String(linha[indices['matricula']] || '');
     }
+    if (indices['grau_parentesco'] !== undefined && indices['grau_parentesco'] < linha.length) {
+      const grau = String(linha[indices['grau_parentesco']] || '').trim();
+      if (grau) {
+        dado.grau_parentesco = grau.toUpperCase();
+      }
+    }
+
+    const nomeDependente = this.extrairNomeDependente(linha, indices);
+    if (nomeDependente) {
+      dado.nome_dependente = nomeDependente;
+    }
 
     // Extrair CPF - garantir que está pegando da coluna correta
     if (indices['cpf'] !== undefined && indices['cpf'] < linha.length) {
@@ -233,20 +268,14 @@ export class TelaRescisaoComponent implements OnInit {
       dado.planos = String(linha[indices['planos']] || '');
     }
 
-    // Extrair valor - garantir que está pegando da coluna correta e não é CPF
-    if (indices['valor'] !== undefined && indices['valor'] < linha.length) {
-      const valorBruto = linha[indices['valor']];
-      const valorStr = String(valorBruto || '').trim();
+    const sinistro = this.extrairValorMonetario(linha, indices['sinistro']);
+    if (sinistro !== undefined) {
+      dado.sinistro = sinistro;
+    }
 
-      // Validar que não é um CPF sendo interpretado como valor
-      // CPF tem formato XXX.XXX.XXX-XX ou 11 dígitos consecutivos
-      const digitosValor = valorStr.replace(/\D/g, '');
-      const temFormatoCPF = valorStr.match(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/) ||
-                           (digitosValor.length === 11 && !valorStr.match(/[R$]/));
-
-      if (!temFormatoCPF) {
-        dado.valor = this.converterValor(valorBruto);
-      }
+    const valor = this.extrairValorMonetario(linha, indices['valor']);
+    if (valor !== undefined) {
+      dado.valor = valor;
     }
 
     if (indices['observacao'] !== undefined && indices['observacao'] < linha.length) {
@@ -259,10 +288,15 @@ export class TelaRescisaoComponent implements OnInit {
   private carregarOrdemColunas() {
     const ordemSalva = localStorage.getItem('ordemColunas');
     if (ordemSalva) {
-      const colunasSalvas = JSON.parse(ordemSalva);
-      this.colunasExibidas = colunasSalvas.filter((col: ColunaDef) =>
-        this.COLUNAS_PADRAO.some(colVal => colVal.field === col.field)
-      );
+      const colunasSalvas = JSON.parse(ordemSalva) as ColunaDef[];
+      const camposSalvos = new Set(colunasSalvas.map(col => col.field));
+      const colunasNovas = this.COLUNAS_PADRAO.filter(col => !camposSalvos.has(col.field));
+      this.colunasExibidas = [
+        ...colunasSalvas.filter(col =>
+          this.COLUNAS_PADRAO.some(colVal => colVal.field === col.field)
+        ),
+        ...colunasNovas
+      ];
     } else {
       this.colunasExibidas = [...this.COLUNAS_PADRAO];
     }
@@ -273,9 +307,9 @@ export class TelaRescisaoComponent implements OnInit {
       const linha: any = {};
       this.colunasExibidas.forEach(col => {
         const valor = item[col.field];
-        linha[col.title] = col.field === 'valor' && valor ?
-          this.formatarMoeda(typeof valor === 'number' ? valor : 0) :
-          (valor || '');
+        linha[col.title] = this.ehCampoMonetario(col.field) && (valor || valor === 0)
+          ? this.formatarMoeda(typeof valor === 'number' ? valor : 0)
+          : (valor || '');
       });
       return linha;
     });
@@ -310,6 +344,8 @@ export class TelaRescisaoComponent implements OnInit {
       const termoMinusculo = this.termoBusca.toLowerCase();
       this.dadosFiltrados = this.dataService.getData().filter(item =>
         (item.nome?.toLowerCase().includes(termoMinusculo) ||
+         item.nome_dependente?.toLowerCase().includes(termoMinusculo) ||
+         item.grau_parentesco?.toLowerCase().includes(termoMinusculo) ||
          item.matricula?.toLowerCase().includes(termoMinusculo) ||
          item.cpf?.toLowerCase().includes(termoMinusculo))
       );
@@ -322,9 +358,12 @@ export class TelaRescisaoComponent implements OnInit {
     this.editando = -1;
     this.novaLinha = {
       nome: '',
+      nome_dependente: '',
+      grau_parentesco: '',
       matricula: '',
       cpf: '',
       planos: '',
+      sinistro: '' as any,
       valor: '' as any,
       descricao: '',
       observacao: ''
@@ -347,15 +386,9 @@ export class TelaRescisaoComponent implements OnInit {
     this.editando = indiceReal;
     this.campoEditando = campo;
     this.linhaEditando = { ...this.dadosFiltrados[indiceReal] };
-    // Formatar valor para exibição no input (como string)
-    if (this.linhaEditando.valor) {
-      this.linhaEditando.valor = (this.linhaEditando.valor as number).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }) as any;
-    } else {
-      this.linhaEditando.valor = '' as any;
-    }
+    this.CAMPOS_MONETARIOS.forEach(campo => {
+      this.linhaEditando[campo] = this.formatarValorParaInput(this.linhaEditando[campo]) as any;
+    });
   }
 
   salvarNovaLinha() {
@@ -363,10 +396,7 @@ export class TelaRescisaoComponent implements OnInit {
       if (this.novaLinha.cpf) {
         this.novaLinha.cpf = this.formatarCPF(this.novaLinha.cpf);
       }
-      // Converter valor formatado (texto) para número
-      if (typeof this.novaLinha.valor === 'string') {
-        this.novaLinha.valor = this.converterValor(this.novaLinha.valor);
-      }
+      this.converterCamposMonetarios(this.novaLinha);
       this.dataService.setData([this.novaLinha, ...this.dataService.getData()]);
       this.dadosFiltrados = this.dataService.getData();
       this.cancelarAdicao();
@@ -378,10 +408,7 @@ export class TelaRescisaoComponent implements OnInit {
       if (this.linhaEditando.cpf) {
         this.linhaEditando.cpf = this.formatarCPF(this.linhaEditando.cpf);
       }
-      // Converter valor formatado (texto) para número
-      if (typeof this.linhaEditando.valor === 'string') {
-        this.linhaEditando.valor = this.converterValor(this.linhaEditando.valor);
-      }
+      this.converterCamposMonetarios(this.linhaEditando);
 
       const dados = this.dataService.getData();
       const indiceNosDados = dados.findIndex(item =>
@@ -391,9 +418,12 @@ export class TelaRescisaoComponent implements OnInit {
       if (indiceNosDados !== -1) {
         const linhaAtualizada = {
           nome: this.linhaEditando.nome,
+          nome_dependente: this.linhaEditando.nome_dependente,
+          grau_parentesco: this.linhaEditando.grau_parentesco,
           matricula: this.linhaEditando.matricula,
           cpf: this.linhaEditando.cpf,
           planos: this.linhaEditando.planos,
+          sinistro: this.linhaEditando.sinistro,
           valor: this.linhaEditando.valor,
           descricao: this.linhaEditando.descricao,
           observacao: this.linhaEditando.observacao
@@ -476,7 +506,7 @@ export class TelaRescisaoComponent implements OnInit {
       let valorA = a[coluna];
       let valorB = b[coluna];
 
-      if (coluna === 'valor') {
+      if (this.ehCampoMonetario(coluna)) {
         valorA = valorA || 0;
         valorB = valorB || 0;
       } else {
@@ -543,12 +573,85 @@ export class TelaRescisaoComponent implements OnInit {
     }
   }
 
+  ehCampoMonetario(campo: string): boolean {
+    return this.CAMPOS_MONETARIOS.includes(campo as typeof this.CAMPOS_MONETARIOS[number]);
+  }
+
+  private extrairValorMonetario(linha: any[], indice?: number): number | undefined {
+    if (indice === undefined || indice >= linha.length) {
+      return undefined;
+    }
+
+    const valorBruto = linha[indice];
+    const valorStr = String(valorBruto ?? '').trim();
+    if (!valorStr) {
+      return undefined;
+    }
+
+    const digitosValor = valorStr.replace(/\D/g, '');
+    const temFormatoCPF = valorStr.match(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/) ||
+      (digitosValor.length === 11 && !valorStr.match(/[R$]/));
+
+    if (temFormatoCPF) {
+      return undefined;
+    }
+
+    return this.converterValor(valorBruto);
+  }
+
+  private formatarValorParaInput(valor: number | string | undefined): string {
+    if (valor === undefined || valor === null || valor === '') {
+      return '';
+    }
+
+    const numero = typeof valor === 'number' ? valor : this.converterValor(valor);
+    return numero.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  private converterCamposMonetarios(linha: Record<string, unknown>) {
+    this.CAMPOS_MONETARIOS.forEach(campo => {
+      if (typeof linha[campo] === 'string') {
+        linha[campo] = this.converterValor(linha[campo]);
+      }
+    });
+  }
+
   private formatarNome(valor: string): string {
     return valor
       .toLowerCase()
       .split(' ')
+      .filter(Boolean)
       .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
       .join(' ');
+  }
+
+  private extrairNomeDependente(
+    linha: any[],
+    indices: { [key: string]: number },
+  ): string | undefined {
+    const indiceColuna = indices['nome_dependente'];
+    if (indiceColuna === undefined || indiceColuna >= linha.length) {
+      return undefined;
+    }
+
+    const nomeColuna = this.formatarNome(String(linha[indiceColuna] || '').trim());
+    if (!nomeColuna) {
+      return undefined;
+    }
+
+    const indiceGrau = indices['grau_parentesco'];
+    const grau = indiceGrau !== undefined && indiceGrau < linha.length
+      ? String(linha[indiceGrau] || '').toUpperCase().trim()
+      : '';
+
+    return nomeColuna;
+  }
+
+  private nomesIguais(a: string, b: string): boolean {
+    return a.trim().toUpperCase() === b.trim().toUpperCase();
   }
 
   private formatarCPF(valor: string): string {
@@ -615,9 +718,12 @@ export class TelaRescisaoComponent implements OnInit {
 
   private registrosIdenticos(a: DadosPlanilha, b: DadosPlanilha): boolean {
     return a.nome === b.nome &&
+           a.nome_dependente === b.nome_dependente &&
+           a.grau_parentesco === b.grau_parentesco &&
            a.matricula === b.matricula &&
            a.cpf === b.cpf &&
            a.planos === b.planos &&
+           a.sinistro === b.sinistro &&
            a.valor === b.valor &&
            a.descricao === b.descricao &&
            a.observacao === b.observacao;

@@ -80,22 +80,20 @@
           <tr *ngIf="editando === -1">
             <td *ngFor="let col of colunasExibidas">
               <label class="sr-only" [for]="'new-' + col.field">{{ col.title }}</label>
-              <ng-container [ngSwitch]="col.field">
-                <ng-container *ngSwitchCase="'valor'">
-                  <input type="text"
-                         [id]="'new-' + col.field"
-                         [(ngModel)]="novaLinha[col.field]"
-                         placeholder="0,00"
-                         [title]="'Novo ' + col.title.toLowerCase()">
-                </ng-container>
-                <ng-container *ngSwitchDefault>
-                  <input type="text"
-                         [id]="'new-' + col.field"
-                         [(ngModel)]="novaLinha[col.field]"
-                         [placeholder]="col.title"
-                         [title]="'Novo ' + col.title.toLowerCase()">
-                </ng-container>
+              <ng-container *ngIf="ehCampoMonetario(col.field); else novoCampoTexto">
+                <input type="text"
+                       [id]="'new-' + col.field"
+                       [(ngModel)]="novaLinha[col.field]"
+                       placeholder="0,00"
+                       [title]="'Novo ' + col.title.toLowerCase()">
               </ng-container>
+              <ng-template #novoCampoTexto>
+                <input type="text"
+                       [id]="'new-' + col.field"
+                       [(ngModel)]="novaLinha[col.field]"
+                       [placeholder]="col.title"
+                       [title]="'Novo ' + col.title.toLowerCase()">
+              </ng-template>
             </td>
             <td class="actions-column">
               <button class="btn-save" (click)="salvarNovaLinha()" title="Salvar">
@@ -112,26 +110,24 @@
             <tr *ngFor="let item of dadosPaginados; let i = index" [class.editing]="editando === i">
               <ng-container *ngIf="editando === i; else displayRow">
                 <td *ngFor="let col of colunasExibidas">
-                  <ng-container [ngSwitch]="col.field">
-                    <ng-container *ngSwitchCase="'valor'">
-                      <label class="sr-only" [for]="'valor-edit-' + i">Valor</label>
-                      <input type="text"
-                             [id]="'valor-edit-' + i"
-                             [(ngModel)]="linhaEditando[col.field]"
-                             placeholder="0,00"
-                             title="Editar valor"
-                             (keyup)="manipularTecla($event)">
-                    </ng-container>
-                    <ng-container *ngSwitchDefault>
-                      <label class="sr-only" [for]="col.field + '-edit-' + i">{{ col.title }}</label>
-                      <input type="text"
-                             [id]="col.field + '-edit-' + i"
-                             [(ngModel)]="linhaEditando[col.field]"
-                             [placeholder]="col.title"
-                             [title]="'Editar ' + col.title.toLowerCase()"
-                             (keyup)="manipularTecla($event)">
-                    </ng-container>
+                  <ng-container *ngIf="ehCampoMonetario(col.field); else editarCampoTexto">
+                    <label class="sr-only" [for]="col.field + '-edit-' + i">{{ col.title }}</label>
+                    <input type="text"
+                           [id]="col.field + '-edit-' + i"
+                           [(ngModel)]="linhaEditando[col.field]"
+                           placeholder="0,00"
+                           [title]="'Editar ' + col.title.toLowerCase()"
+                           (keyup)="manipularTecla($event)">
                   </ng-container>
+                  <ng-template #editarCampoTexto>
+                    <label class="sr-only" [for]="col.field + '-edit-' + i">{{ col.title }}</label>
+                    <input type="text"
+                           [id]="col.field + '-edit-' + i"
+                           [(ngModel)]="linhaEditando[col.field]"
+                           [placeholder]="col.title"
+                           [title]="'Editar ' + col.title.toLowerCase()"
+                           (keyup)="manipularTecla($event)">
+                  </ng-template>
                 </td>
                 <td class="actions-column">
                   <button class="btn-save" (click)="salvarEdicao()" title="Salvar">
@@ -143,15 +139,15 @@
                 </td>
               </ng-container>
               <ng-template #displayRow>
-                <td *ngFor="let col of colunasExibidas" (dblclick)="editarCampo(i, col.field)">
-                  <ng-container [ngSwitch]="col.field">
-                    <ng-container *ngSwitchCase="'valor'">
-                      {{ formatarMoeda(item[col.field]) }}
-                    </ng-container>
-                    <ng-container *ngSwitchDefault>
-                      {{ item[col.field] }}
-                    </ng-container>
+                <td *ngFor="let col of colunasExibidas"
+                    [class.col-moeda]="ehCampoMonetario(col.field)"
+                    (dblclick)="editarCampo(i, col.field)">
+                  <ng-container *ngIf="ehCampoMonetario(col.field); else exibirCampoTexto">
+                    {{ formatarMoeda(item[col.field]) }}
                   </ng-container>
+                  <ng-template #exibirCampoTexto>
+                    {{ item[col.field] }}
+                  </ng-template>
                 </td>
                 <!-- Coluna de ações fixa -->
                 <td class="actions-column">
@@ -167,10 +163,10 @@
           </ng-container>
           <ng-template #emptyTable>
             <tr class="empty-row" *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]">
-              <td colspan="9"></td>
+              <td colspan="11"></td>
             </tr>
             <tr>
-              <td colspan="9" class="no-data-message">
+              <td colspan="11" class="no-data-message">
                 Nenhum dado encontrado. Importe uma planilha para começar.
               </td>
             </tr>

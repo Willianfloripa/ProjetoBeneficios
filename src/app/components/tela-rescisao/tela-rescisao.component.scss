@@ -240,10 +240,11 @@ td:nth-child(5):contains('Não') {
   color: #e74c3c;
 }
 
-/* Formatação especial para valores monetários */
-td:nth-child(6) {
+/* Formatação especial para valores monetários (valor e sinistro) */
+td.col-moeda {
   color: #3498db;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .clear-button {
