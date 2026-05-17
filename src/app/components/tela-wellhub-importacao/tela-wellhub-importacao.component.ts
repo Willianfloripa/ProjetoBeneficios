@@ -1,26 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import * as XLSX from 'xlsx';
 import { Router } from '@angular/router';
 import { LoadingService } from '../../services/loading.service';
-
-interface DadoPadrao {
-  FUNCIONARIO: string;
-  EMAIL: string;
-  CPF: string;
-  MATRICULA_WLLHUB: string;
-  FILIAL: string;
-  MATRICULA: string;
-  CC: string;
-  DESCONTO_EM_FOLHA: 'YES' | 'NO';
-  DATA_NASCIMENTO: string;
-  DATA_ADMISSAO: string;
-  SITUACAO_FUNCIONARIO: string;
-  CARGO: string;
-  PRAZO_EXPERIENCIA_1: string;
-  PRAZO_EXPERIENCIA_2: string;
-}
+import { DadoPadrao } from './dado-padrao.model';
+import { DADOS_FIXOS_WELLHUB } from './dados-fixos-wellhub';
 
 interface DadoExportacao {
   Name: string;
@@ -52,6 +37,7 @@ export class TelaWellhubImportacaoComponent {
   filteredData: DadoPadrao[] = [];
   private planilhas: PlanilhaProcessada[] = [];
   private matriculasGeradas = new Set<string>();
+  private cpfsFixos = new Set<string>();
   showModal = false;
   modalTitle = '';
   modalMessage = '';
@@ -81,7 +67,6 @@ export class TelaWellhubImportacaoComponent {
       if (!files?.length) return;
 
       this.planilhas = [];
-      this.dadosPadrao = [];
 
       for (const file of Array.from(files)) {
         const planilhasDoArquivo = await this.lerPlanilha(file);
@@ -138,6 +123,26 @@ export class TelaWellhubImportacaoComponent {
 
   // --- Tratamento de dados ---
 
+  private carregarDadosFixos() {
+    const dadosFixos = this.obterDadosFixos();
+    this.cpfsFixos = new Set(dadosFixos.map(d => this.limparCPF(d.CPF)));
+    this.dadosPadrao = dadosFixos;
+    this.filteredData = [...dadosFixos];
+    this.inicializarMatriculasGeradas(dadosFixos);
+  }
+
+  private obterDadosFixos(): DadoPadrao[] {
+    return DADOS_FIXOS_WELLHUB.map(dado => ({
+      ...dado,
+      CPF: this.formatarCPF(dado.CPF)
+    }));
+  }
+
+  private inicializarMatriculasGeradas(dados: DadoPadrao[]) {
+    this.matriculasGeradas.clear();
+    dados.forEach(d => this.matriculasGeradas.add(d.MATRICULA_WLLHUB));
+  }
+
   private processarDados() {
     const abaFuncionario = this.encontrarAba(['funcionario', 'funcionarios']);
     const abaEmail = this.encontrarAba(['endereco eletronico', 'endereco eletrônico']);
@@ -147,13 +152,15 @@ export class TelaWellhubImportacaoComponent {
       return;
     }
 
+    this.carregarDadosFixos();
+
     const emailsPorCpf = abaEmail ? this.montarMapaEmails(abaEmail.dados) : new Map<string, string>();
-    this.matriculasGeradas.clear();
-    const dadosProcessados: DadoPadrao[] = [];
+    const dadosProcessados: DadoPadrao[] = [...this.obterDadosFixos()];
+    this.inicializarMatriculasGeradas(dadosProcessados);
 
     abaFuncionario.dados.forEach(linha => {
       const cpf = this.limparCPF(String(this.obterValor(linha, ['CPF', 'CPF FUNCIONÁRIO', 'CPF FUNCIONARIO']) || ''));
-      if (!cpf) return;
+      if (!cpf || this.cpfsFixos.has(cpf)) return;
 
       const funcionario = String(this.obterValor(linha, ['FUNCIONÁRIO', 'FUNCIONARIO', 'NOME']) || '').trim();
       if (!funcionario) return;
@@ -380,7 +387,7 @@ export class TelaWellhubImportacaoComponent {
       const ws = XLSX.utils.json_to_sheet(dadosExportacao);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-      XLSX.writeFile(wb, 'arena_wellhub_export.csv');
+      XLSX.writeFile(wb, 'employees-list-template.csv');
     } finally {
       this.loadingService.hide();
     }
