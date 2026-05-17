@@ -307,24 +307,27 @@ export class TelaRescisaoComponent implements OnInit {
       const linha: any = {};
       this.colunasExibidas.forEach(col => {
         const valor = item[col.field];
-        linha[col.title] = this.ehCampoMonetario(col.field) && (valor || valor === 0)
-          ? this.formatarMoeda(typeof valor === 'number' ? valor : 0)
-          : (valor || '');
+        linha[col.title] = this.ehCampoMonetario(col.field)
+          ? this.formatarMoeda(this.obterNumeroMonetario(valor))
+          : String(valor ?? '');
       });
       return linha;
     });
 
-    dadosParaExportar.push(Object.fromEntries(this.colunasExibidas.map(col => [col.title, ''])));
-
-    const linhaTotal: any = Object.fromEntries(this.colunasExibidas.map(col => [col.title, '']));
-    linhaTotal[this.colunasExibidas[0].title] = 'VALOR TOTAL A DESCONTAR';
-    linhaTotal[this.colunasExibidas.find(col => col.field === 'valor')?.title || ''] =
-      this.formatarMoeda(this.obterValorTotal());
-    dadosParaExportar.push(linhaTotal);
+    dadosParaExportar.push(this.montarLinhaTotal(''));
+    dadosParaExportar.push(this.montarLinhaTotal('VALOR TOTAL A DESCONTAR', 'valor'));
+    dadosParaExportar.push(this.montarLinhaTotal('SINISTROS EMPRESA', 'sinistro'));
 
     const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+    const idxLinhaValor = dadosParaExportar.length - 2;
+    const idxLinhaSinistro = dadosParaExportar.length - 1;
+    const limiteMesclagem = this.obterLimiteMesclagemRodape();
+
+    this.aplicarTotaisNaPlanilha(ws, idxLinhaValor, idxLinhaSinistro);
+
     ws['!merges'] = [
-      { s: { r: dadosParaExportar.length - 1, c: 0 }, e: { r: dadosParaExportar.length - 1, c: this.colunasExibidas.length - 2 } }
+      { s: { r: idxLinhaValor + 1, c: 0 }, e: { r: idxLinhaValor + 1, c: limiteMesclagem } },
+      { s: { r: idxLinhaSinistro + 1, c: 0 }, e: { r: idxLinhaSinistro + 1, c: limiteMesclagem } }
     ];
 
     const wb = XLSX.utils.book_new();
@@ -343,6 +346,7 @@ export class TelaRescisaoComponent implements OnInit {
     } else {
       const termoMinusculo = this.termoBusca.toLowerCase();
       this.dadosFiltrados = this.dataService.getData().filter(item =>
+        item.planos?.toLowerCase().includes(termoMinusculo) ||
         (item.nome?.toLowerCase().includes(termoMinusculo) ||
          item.nome_dependente?.toLowerCase().includes(termoMinusculo) ||
          item.grau_parentesco?.toLowerCase().includes(termoMinusculo) ||
@@ -546,7 +550,72 @@ export class TelaRescisaoComponent implements OnInit {
 
   //Funções auxiliares
   obterValorTotal(): number {
-    return this.dadosFiltrados.reduce((total, item) => total + (item.valor || 0), 0);
+    return this.obterSomaMonetaria('valor');
+  }
+
+  obterValorTotalSinistro(): number {
+    return this.obterSomaMonetaria('sinistro');
+  }
+
+  private obterSomaMonetaria(campo: 'valor' | 'sinistro'): number {
+    return this.dadosFiltrados.reduce(
+      (total, item) => total + this.obterNumeroMonetario(item[campo]),
+      0
+    );
+  }
+
+  private obterNumeroMonetario(valor: unknown): number {
+    if (valor === null || valor === undefined || valor === '') {
+      return 0;
+    }
+    if (typeof valor === 'number') {
+      return isNaN(valor) ? 0 : valor;
+    }
+    return this.converterValor(valor);
+  }
+
+  /** Mescla só até antes das colunas Sinistro/Valor para não apagar os totais */
+  private obterLimiteMesclagemRodape(): number {
+    const idxMonetario = this.colunasExibidas.findIndex(col =>
+      col.field === 'sinistro' || col.field === 'valor'
+    );
+    return idxMonetario > 0 ? idxMonetario - 1 : 0;
+  }
+
+  private aplicarTotaisNaPlanilha(
+    ws: XLSX.WorkSheet,
+    indiceLinhaValor: number,
+    indiceLinhaSinistro: number
+  ): void {
+    const escreverTotal = (indiceLinha: number, campo: 'valor' | 'sinistro') => {
+      const coluna = this.colunasExibidas.findIndex(col => col.field === campo);
+      if (coluna < 0) {
+        return;
+      }
+      const ref = XLSX.utils.encode_cell({ r: indiceLinha + 1, c: coluna });
+      ws[ref] = { t: 's', v: this.formatarMoeda(this.obterSomaMonetaria(campo)) };
+    };
+
+    escreverTotal(indiceLinhaValor, 'valor');
+    escreverTotal(indiceLinhaSinistro, 'sinistro');
+  }
+
+  /** Monta linha de rodapé do Excel: rótulo na 1ª coluna e total na coluna valor ou sinistro */
+  private montarLinhaTotal(rotulo: string, campo?: 'valor' | 'sinistro'): Record<string, string> {
+    const linha: Record<string, string> = {};
+    const total = campo ? this.obterSomaMonetaria(campo) : 0;
+
+    this.colunasExibidas.forEach((col, indice) => {
+      if (campo && col.field === campo) {
+        linha[col.title] = this.formatarMoeda(total);
+      } else if (indice === 0) {
+        linha[col.title] = rotulo;
+      } else {
+        linha[col.title] = '';
+      }
+    });
+
+    return linha;
   }
 
   formatarMoeda(valor: number | string | undefined): string {

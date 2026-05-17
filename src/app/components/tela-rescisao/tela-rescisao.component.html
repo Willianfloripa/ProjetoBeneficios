@@ -50,7 +50,8 @@
 
       <div class="actions-right" *ngIf="dadosFiltrados.length > 0">
         <div class="total-value">
-          Total: {{ formatarMoeda(obterValorTotal()) }}
+          <span>Valor: {{ formatarMoeda(obterValorTotal()) }}</span><br>
+          <span>Sinistro: {{ formatarMoeda(obterValorTotalSinistro()) }}</span>
         </div>
         <button class="btn-export" (click)="exportarParaExcel()">
           <i class="fas fa-file-export"></i>
