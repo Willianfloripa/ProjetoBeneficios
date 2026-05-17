@@ -3,9 +3,11 @@ import { TelaRescisaoComponent } from './components/tela-rescisao/tela-rescisao.
 import { HomeComponent } from './components/home/home.component';
 import { TelaCcmComponent } from './components/tela-ccm/tela-ccm.component';
 import { TelaWellhubComponent } from './components/tela-wellhub/tela-wellhub.component';
+import { TelaWellhubImportacaoComponent } from './components/tela-wellhub-importacao/tela-wellhub-importacao.component';
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'rescisao', component: TelaRescisaoComponent },
   { path: 'ccm', component: TelaCcmComponent },
-  { path: 'wellhub', component: TelaWellhubComponent }
+  { path: 'wellhub', component: TelaWellhubComponent },
+  { path: 'wellhub-importacao', component: TelaWellhubImportacaoComponent }
 ];

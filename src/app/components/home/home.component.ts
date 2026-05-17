@@ -49,4 +49,13 @@ export class HomeComponent {
       this.loadingService.hide();
     }
   }
+
+  async navegarParaTelaWellhubImportacao() {
+    this.loadingService.show('Carregando...');
+    try {
+      await this.router.navigate(['/wellhub-importacao']);
+    } finally {
+      this.loadingService.hide();
+    }
+  }
 }

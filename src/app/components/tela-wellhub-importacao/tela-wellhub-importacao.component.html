@@ -1,0 +1,112 @@
+<div class="main-container">
+  <div class="header">
+    <button class="btn-back" (click)="voltar()">
+      <i class="fas fa-arrow-left"></i> Voltar
+    </button>
+    <h1>Arena - Importação Wellhub</h1>
+  </div>
+
+  <div class="content">
+    <div class="search-container">
+      <button class="btn-import" (click)="triggerFileInput()">
+        <i class="fas fa-file-import"></i>
+        Importar
+      </button>
+      <input
+        type="file"
+        id="fileInput"
+        class="hidden-file-input"
+        (change)="importarPlanilha($event)"
+        accept=".xlsx,.xls"
+      >
+
+      <div class="search-center">
+        <div class="control-item">
+          <label for="searchInput">Pesquisar</label>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Digite para pesquisar..."
+            title="Campo de pesquisa"
+            [(ngModel)]="searchTerm"
+            (input)="filterData()"
+          >
+        </div>
+      </div>
+
+      <div class="actions-right">
+        <div class="total-field">Registros: {{ getTotalRegistros() }}</div>
+        <button class="btn-export" (click)="exportToExcel()" [disabled]="!dadosPadrao.length">
+          <i class="fas fa-file-export"></i>
+          Exportar
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Funcionário</th>
+            <th>Email</th>
+            <th>CPF</th>
+            <th>Matrícula WLLHUB</th>
+            <th>Filial</th>
+            <th>Matrícula</th>
+            <th>CC</th>
+            <th>Desconto em Folha</th>
+            <th>Data Nascimento</th>
+            <th>Data Admissão</th>
+            <th>Situação</th>
+            <th>Cargo</th>
+            <th>Prazo Exp. (1)</th>
+            <th>Prazo Exp. (2)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let dado of filteredData">
+            <td>{{ dado.FUNCIONARIO }}</td>
+            <td>{{ dado.EMAIL }}</td>
+            <td>{{ dado.CPF }}</td>
+            <td>{{ dado.MATRICULA_WLLHUB }}</td>
+            <td>{{ dado.FILIAL }}</td>
+            <td>{{ dado.MATRICULA }}</td>
+            <td>{{ dado.CC }}</td>
+            <td [class.payroll-yes]="dado.DESCONTO_EM_FOLHA === 'YES'" [class.payroll-no]="dado.DESCONTO_EM_FOLHA === 'NO'">
+              {{ dado.DESCONTO_EM_FOLHA }}
+            </td>
+            <td>{{ dado.DATA_NASCIMENTO }}</td>
+            <td>{{ dado.DATA_ADMISSAO }}</td>
+            <td>{{ dado.SITUACAO_FUNCIONARIO }}</td>
+            <td>{{ dado.CARGO }}</td>
+            <td>{{ dado.PRAZO_EXPERIENCIA_1 }}</td>
+            <td>{{ dado.PRAZO_EXPERIENCIA_2 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ modalTitle }}</h2>
+        <button type="button" class="btn-close" (click)="cancelModal()" title="Fechar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        {{ modalMessage }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-confirm" (click)="confirmModal()">
+          <i class="fas fa-check"></i> OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2025 WTM - Todos os direitos reservados</p>
+  </footer>
+</div>
