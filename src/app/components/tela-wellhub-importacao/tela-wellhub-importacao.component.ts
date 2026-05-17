@@ -165,6 +165,9 @@ export class TelaWellhubImportacaoComponent {
       const funcionario = String(this.obterValor(linha, ['FUNCIONÁRIO', 'FUNCIONARIO', 'NOME']) || '').trim();
       if (!funcionario) return;
 
+      const cc = String(this.obterValor(linha, ['CC', 'CENTRO CUSTO', 'CENTRO DE CUSTOS']) || '').trim();
+      if (this.deveExcluirCcBratec(cc, cpf)) return;
+
       const dataNascimento = this.formatarData(this.obterValor(linha, ['DATA NASCIMENTO', 'DATA_NASCIMENTO']));
       const prazo1 = this.obterValor(linha, ['PRAZO EXPERIÊNCIA (1)', 'PRAZO EXPERIENCIA (1)']);
       const prazo2 = this.obterValor(linha, ['PRAZO EXPERIÊNCIA (2)', 'PRAZO EXPERIENCIA (2)']);
@@ -177,7 +180,7 @@ export class TelaWellhubImportacaoComponent {
         MATRICULA_WLLHUB: this.gerarMatriculaWellhub(cpf, dataNascimento, funcionario),
         FILIAL: String(this.obterValor(linha, ['FILIAL']) || ''),
         MATRICULA: String(this.obterValor(linha, ['MATRÍCULA', 'MATRICULA']) || ''),
-        CC: String(this.obterValor(linha, ['CC', 'CENTRO CUSTO', 'CENTRO DE CUSTOS']) || ''),
+        CC: cc,
         DESCONTO_EM_FOLHA: this.calcularPayrollEnabled(cargo, prazo1, prazo2),
         DATA_NASCIMENTO: dataNascimento,
         DATA_ADMISSAO: this.formatarData(this.obterValor(linha, ['DATA ADMISSÃO', 'DATA ADMISSAO', 'DATA_ADMISSAO'])),
@@ -282,6 +285,10 @@ export class TelaWellhubImportacaoComponent {
   private isCargoSemDesconto(cargo: string): boolean {
     const cargoNormalizado = this.normalizarTexto(cargo);
     return this.cargosSemDesconto.some(c => cargoNormalizado === this.normalizarTexto(c));
+  }
+
+  private deveExcluirCcBratec(cc: string, cpf: string): boolean {
+    return this.normalizarTexto(cc) === 'BRATEC' && !this.cpfsFixos.has(cpf);
   }
 
   private obterValor(linha: Record<string, unknown>, chaves: string[]): unknown {

@@ -47,40 +47,40 @@
       <table>
         <thead>
           <tr>
-            <th>Funcionário</th>
-            <th>Email</th>
-            <th>CPF</th>
-            <th>Matrícula WLLHUB</th>
-            <th>Filial</th>
-            <th>Matrícula</th>
-            <th>CC</th>
-            <th>Desconto em Folha</th>
-            <th>Data Nascimento</th>
-            <th>Data Admissão</th>
-            <th>Situação</th>
-            <th>Cargo</th>
-            <th>Prazo Exp. (1)</th>
-            <th>Prazo Exp. (2)</th>
+            <th class="col-text">Funcionário</th>
+            <th class="col-email">Email</th>
+            <th class="col-compact">CPF</th>
+            <th class="col-compact">Matrícula WLLHUB</th>
+            <th class="col-filial">Filial</th>
+            <th class="col-compact">Matrícula</th>
+            <th class="col-text">CC</th>
+            <th class="col-compact">Desconto em Folha</th>
+            <th class="col-compact">Data Nascimento</th>
+            <th class="col-compact">Data Admissão</th>
+            <th class="col-compact">Situação</th>
+            <th class="col-text">Cargo</th>
+            <th class="col-compact">Prazo Exp. (1)</th>
+            <th class="col-compact">Prazo Exp. (2)</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let dado of filteredData">
-            <td>{{ dado.FUNCIONARIO }}</td>
-            <td>{{ dado.EMAIL }}</td>
-            <td>{{ dado.CPF }}</td>
-            <td>{{ dado.MATRICULA_WLLHUB }}</td>
-            <td>{{ dado.FILIAL }}</td>
-            <td>{{ dado.MATRICULA }}</td>
-            <td>{{ dado.CC }}</td>
-            <td [class.payroll-yes]="dado.DESCONTO_EM_FOLHA === 'YES'" [class.payroll-no]="dado.DESCONTO_EM_FOLHA === 'NO'">
+            <td class="col-text">{{ dado.FUNCIONARIO }}</td>
+            <td class="col-email">{{ dado.EMAIL }}</td>
+            <td class="col-compact">{{ dado.CPF }}</td>
+            <td class="col-compact">{{ dado.MATRICULA_WLLHUB }}</td>
+            <td class="col-filial">{{ dado.FILIAL }}</td>
+            <td class="col-compact">{{ dado.MATRICULA }}</td>
+            <td class="col-text">{{ dado.CC }}</td>
+            <td class="col-compact" [class.payroll-yes]="dado.DESCONTO_EM_FOLHA === 'YES'" [class.payroll-no]="dado.DESCONTO_EM_FOLHA === 'NO'">
               {{ dado.DESCONTO_EM_FOLHA }}
             </td>
-            <td>{{ dado.DATA_NASCIMENTO }}</td>
-            <td>{{ dado.DATA_ADMISSAO }}</td>
-            <td>{{ dado.SITUACAO_FUNCIONARIO }}</td>
-            <td>{{ dado.CARGO }}</td>
-            <td>{{ dado.PRAZO_EXPERIENCIA_1 }}</td>
-            <td>{{ dado.PRAZO_EXPERIENCIA_2 }}</td>
+            <td class="col-compact">{{ dado.DATA_NASCIMENTO }}</td>
+            <td class="col-compact">{{ dado.DATA_ADMISSAO }}</td>
+            <td class="col-compact">{{ dado.SITUACAO_FUNCIONARIO }}</td>
+            <td class="col-text">{{ dado.CARGO }}</td>
+            <td class="col-compact">{{ dado.PRAZO_EXPERIENCIA_1 }}</td>
+            <td class="col-compact">{{ dado.PRAZO_EXPERIENCIA_2 }}</td>
           </tr>
         </tbody>
       </table>

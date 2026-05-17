@@ -78,18 +78,29 @@
   padding: 12px;
   background: #ecf0f1;
   border-bottom: 2px solid #bdc3c7;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  flex-shrink: 0;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+
+    .search-center {
+      grid-column: 1 / -1;
+    }
+
+    .actions-right {
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+    }
+  }
 }
 
 .search-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  max-width: 800px;
-  margin: 0 auto;
+  min-width: 0;
+  width: 100%;
 }
 
 .search-center .control-item {
@@ -120,7 +131,9 @@
 .actions-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
 
   .total-field {
     background: #fff;
@@ -129,7 +142,7 @@
     border-radius: 4px;
     font-weight: 500;
     color: #333;
-    min-width: 150px;
+    white-space: nowrap;
     text-align: left;
   }
 }
@@ -185,40 +198,72 @@
 
 .table-container {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   background: white;
+  -webkit-overflow-scrolling: touch;
 
   table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
-    border-spacing: 0;
+    table-layout: auto;
+
+    th,
+    td {
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid #eee;
+    }
 
     th {
       background: #34495e;
       color: white;
-      padding: 12px;
-      text-align: left;
       position: sticky;
       top: 0;
       z-index: 1;
-      font-weight: normal;
-      border: none;
+      font-weight: 500;
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
 
-    td {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-      text-align: left;
+    .col-compact {
+      white-space: nowrap;
+      width: 1%;
+    }
+
+    .col-text {
       white-space: normal;
-      word-wrap: break-word;
+      word-break: break-word;
+      min-width: 9rem;
+      max-width: 14rem;
+    }
+
+    .col-email {
+      min-width: 11rem;
+      max-width: 16rem;
+      white-space: normal;
+      word-break: break-all;
+    }
+
+    .col-filial {
+      min-width: 10rem;
+      max-width: 15rem;
+      white-space: normal;
+      word-break: break-word;
     }
 
     tr:hover td {
       background: #f5f6fa;
     }
 
-    tr:nth-child(even) {
+    tbody tr:nth-child(even) td {
       background: #f8f9fa;
+    }
+
+    tbody tr:nth-child(even):hover td {
+      background: #f0f2f5;
     }
 
     thead tr {
