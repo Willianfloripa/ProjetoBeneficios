@@ -387,7 +387,7 @@ export class TelaWellhubImportacaoComponent {
       const ws = XLSX.utils.json_to_sheet(dadosExportacao);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-      XLSX.writeFile(wb, 'employees-list-template.csv');
+      XLSX.writeFile(wb, 'employees-list-template.xlsx');
     } finally {
       this.loadingService.hide();
     }
