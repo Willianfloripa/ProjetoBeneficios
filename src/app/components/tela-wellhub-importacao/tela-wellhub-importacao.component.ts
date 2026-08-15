@@ -215,9 +215,9 @@ export class TelaWellhubImportacaoComponent {
         'TIPO'
       ]) || ''));
 
-      if (!tipo.includes('EMAIL')) return;
+      if (!tipo.includes('EMAIL') && !tipo.includes('OUTROS') && !tipo.includes('SITE')) return;
 
-      const email = String(this.obterValor(linha, ['ENDEREÇO', 'ENDERECO', 'EMAIL']) || '').trim();
+      const email = String(this.obterValor(linha, ['ENDEREÇO', 'ENDERECO', 'EMAIL', 'SITE', 'OUTROS']) || '').trim();
       if (email) {
         mapa.set(cpf, email);
       }
@@ -375,7 +375,7 @@ export class TelaWellhubImportacaoComponent {
     return dados.map(item => ({
       Name: item.FUNCIONARIO,
       Email: item.EMAIL,
-      'National ID': item.CPF,
+      'National ID': this.limparCPF(item.CPF),
       'Employee ID': item.MATRICULA_WLLHUB,
       Department: item.FILIAL,
       'Payroll ID': item.MATRICULA,
