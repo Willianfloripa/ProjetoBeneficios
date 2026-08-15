@@ -13,7 +13,7 @@ import { LoadingService } from '../../services/loading.service';
 })
 export class HomeComponent {
   isLoading: boolean = false;
-  versao: string = '4.1.0';
+  versao: string = '4.1.1';
 
   constructor(
     private router: Router,
