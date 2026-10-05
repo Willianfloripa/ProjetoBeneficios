@@ -323,14 +323,15 @@ export class TelaWellhubImportacaoComponent {
       }
     }
 
-    const texto = String(valor).trim();
-    const partes = texto.split('/');
+    const texto = String(valor).trim().split(/[T\s]/)[0];
+    const partes = texto.split(/[\/\-]/);
     if (partes.length === 3) {
-      const dia = parseInt(partes[0], 10);
+      const anoPrimeiro = partes[0].length === 4;
+      const ano = parseInt(anoPrimeiro ? partes[0] : partes[2], 10);
       const mes = parseInt(partes[1], 10) - 1;
-      const ano = parseInt(partes[2], 10);
+      const dia = parseInt(anoPrimeiro ? partes[2] : partes[0], 10);
       const data = new Date(ano, mes, dia);
-      if (!isNaN(data.getTime())) {
+      if (!isNaN(data.getTime()) && data.getFullYear() === ano && data.getMonth() === mes && data.getDate() === dia) {
         return this.inicioDoDia(data);
       }
     }
