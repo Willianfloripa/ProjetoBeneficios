@@ -194,5 +194,21 @@ export const DADOS_FIXOS_WELLHUB: DadoPadrao[] = [
     CARGO: vazio,
     PRAZO_EXPERIENCIA_1: vazio,
     PRAZO_EXPERIENCIA_2: vazio
+  },
+  {
+    FUNCIONARIO: 'LUCIANO MACHADO',
+    EMAIL: 'lucianomachadobueno2005@gmail.com',
+    CPF: '14354819929',
+    MATRICULA_WLLHUB: '143542005LUCIANO',
+    FILIAL: 'EQS ENGENHARIA - MATRIZ - SC',
+    MATRICULA: '033640',
+    CC: 'UFPR PR',
+    DESCONTO_EM_FOLHA: 'YES',
+    DATA_NASCIMENTO: vazio,
+    DATA_ADMISSAO: vazio,
+    SITUACAO_FUNCIONARIO: vazio,
+    CARGO: vazio,
+    PRAZO_EXPERIENCIA_1: vazio,
+    PRAZO_EXPERIENCIA_2: vazio
   }
 ];
